@@ -7,6 +7,7 @@ const { Schema } = mongoose;
 
 const UsersSchema = new Schema({
   username: String,
+  activated: Number,
   money: Number,
   email: String,
   uuid: String,
@@ -49,7 +50,18 @@ UsersSchema.methods.toAuthJSON = function() {
     username: this.username,
     uuid: this.uuid,
     money: this.money,
+    activated: this.activated,
     token: this.generateJWT()
+  };
+};
+
+UsersSchema.methods.toAuthJSONreg = function() {
+  return {
+    _id: this._id,
+    email: this.email,
+    username: this.username,
+    uuid: this.uuid,
+    money: this.money
   };
 };
 

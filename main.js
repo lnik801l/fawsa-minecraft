@@ -33,6 +33,8 @@ mongoose.set('debug', true);
 
 //Models & routes
 require('./models/users');
+require('./models/skins');
+require('./models/emailtokens');
 require('./models/cart');
 require('./config/passport');
 app.use(require('./routes'));
@@ -62,4 +64,6 @@ app.use((err, req, res) => {
   });
 });
 
-app.listen(8000, () => console.log('Server running on http://localhost:8000/'));
+const port = 8000;
+
+app.listen(port, () => console.log('Server running on http://localhost:' + port));
