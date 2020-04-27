@@ -8,7 +8,7 @@ const { Schema } = mongoose;
 const UsersSchema = new Schema({
   username: String,
   activated: Number,
-  money: Number,
+  refer: String,
   vk_id: String,
   email: String,
   uuid: String,

@@ -5,6 +5,7 @@ const request = require('request');
 const auth = require('../auth');
 const Users = mongoose.model('Users');
 const EmailTokens = mongoose.model('EmailTokens');
+const Money = mongoose.model('Money');
 
 const mailer = require('../../config/mailer');
 const cfg = require('../../config/constants');
@@ -53,6 +54,8 @@ router.post('/register', auth.optional, (req, res, next) => {
       finalUser.money = 0;
       finalUser.activated = 0;
       finalUser.generateUUID();
+      if (reqUser.refer)
+        finalUser.refer = reqUser.refer;
       return finalUser.save()
         .then(() => {
           emailToken = new EmailTokens({linked_user_id: finalUser._id, type: "activate"});
@@ -186,24 +189,6 @@ router.get('/current', auth.required, (req, res, next) => {
       });
 
     });
-});
-
-//GET dupe money (auth required)
-router.get('/addmoney', auth.required, (req, res, next) => {
-  const { payload: { id } } = req;
-  
-  return Users.findById(id)
-    .then((user) => {
-      if(!user) {
-        return res.sendStatus(400);
-      }
-      user.updateOne({money: user.money + 1000}).then(() => {
-        res.json({
-          message: "ban"
-        });
-      })
-
-  });
 });
 
 //GET activate user account
@@ -466,6 +451,60 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
       });
     });
    }
+  });
+});
+
+//GET dupe money (auth required)
+router.get('/:project/addmoney', auth.required, (req, res, next) => {
+  var flag = true;
+  console.log(req.params.project);
+  for (project in cfg.projects)
+    if (project == req.params.project)
+      flag = false;
+  if (flag)
+    return res.json({
+      error: true,
+      message: "project does not exists!"
+    });
+
+  const { payload: { id } } = req;
+  
+  Users.findById(id)
+    .then((user) => {
+      if(!user) {
+        return res.json({
+          error: true,
+          message: "error in check userExists"
+        });
+      }
+      if (user) {
+        Money.findOne({ linked_user_id: id, project: req.params.project }, function(err, money) {
+          if (err)
+            return res.json({
+              error: true,
+              message: "error in check moneyExists"
+            });
+          if (!money) {
+            localMoney = new Money({ linked_user_id: id, project: req.params.project, money: 1000 });
+            localMoney.save().then(() => {
+              return res.json({
+                error: false,
+                message: "BANNAXYI"
+              });
+            });
+          }
+          if (money) {
+            money.updateOne({ money: money.money + 1000 }).then(() => {
+              return res.json({
+                error: false,
+                message: "BANNAXYI"
+              });
+            });
+          }
+            
+        });
+      }
+
   });
 });
 

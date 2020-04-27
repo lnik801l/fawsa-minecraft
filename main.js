@@ -35,6 +35,7 @@ mongoose.set('debug', true);
 require('./models/users');
 require('./models/skins');
 require('./models/emailtokens');
+require('./models/money');
 require('./models/cart');
 require('./config/passport');
 app.use(require('./routes'));
