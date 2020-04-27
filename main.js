@@ -28,7 +28,7 @@ if(!isProduction) {
 }
 
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/testdatabase-18', {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect('mongodb://localhost/db', {useNewUrlParser: true, useUnifiedTopology: true});
 mongoose.set('debug', true);
 
 //Models & routes

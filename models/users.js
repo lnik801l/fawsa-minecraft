@@ -9,6 +9,7 @@ const UsersSchema = new Schema({
   username: String,
   activated: Number,
   money: Number,
+  vk_id: String,
   email: String,
   uuid: String,
   hash: String,

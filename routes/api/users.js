@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 const passport = require('passport');
 const router = require('express').Router();
+const request = require('request');
 const auth = require('../auth');
 const Users = mongoose.model('Users');
 const EmailTokens = mongoose.model('EmailTokens');
 
 const mailer = require('../../config/mailer');
+const cfg = require('../../config/constants');
 
 //POST new user route (optional, everyone has access)
 router.post('/register', auth.optional, (req, res, next) => {
@@ -116,6 +118,58 @@ router.post('/login', auth.optional, (req, res, next) => {
   
 });
 
+//GET link vk profile to current logged account
+router.get('/vklogin', auth.optional, (req, res, next) => {
+  res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.app_id + '&redirect_uri=' + cfg.login_redirect_uri + '&display=popup&response_type=code');
+});
+
+//GET vk callback (used after user logged in vk profile using /linkvk)
+router.get('/vklogin/callback', auth.optional, (req, res, next) => {
+
+  request({
+    method: 'GET',
+    url: 'https://oauth.vk.com/access_token?client_id=' + cfg.app_id + '&client_secret=' + cfg.client_secret + '&redirect_uri=' + cfg.login_redirect_uri + '&code=' + req.query.code,
+   }, function (error, response, body) {
+   if (error) {
+     console.log(error);
+     return res.json({
+       error: true,
+       error: error
+     });
+   }
+   if (!error && response.statusCode == 200) {
+
+    var parsed = JSON.parse(body);
+
+    Users.findOne({vk_id: parsed.user_id}, function(err, user) {
+      if (err) {
+        console.log("ban nahooi"); 
+        return res.json({
+          error: true,
+          message: "error in check userExists",
+          error: err
+        });
+      }
+      if (!user)
+        return res.json({
+          error: true,
+          message: "user with that vk user not found!"
+        })
+      if (user) {
+        if (user.activated == 0) {
+          return res.json({ error: true, message: "account is not activated!" });
+        } else {
+          const luser = user;
+          luser.token = user.generateJWT();
+
+          return res.json({ error: false, user: luser.toAuthJSON() });
+        }
+      }
+    });
+   }
+  });
+});
+
 //GET current route (required, only authenticated users have access)
 router.get('/current', auth.required, (req, res, next) => {
   const { payload: { id } } = req;
@@ -173,12 +227,15 @@ router.get('/activate/:token', auth.optional, (req, res, next) => {
                 });
             }
             if (user) {
+              token.delete().then(() => {
                 user.updateOne({activated: 1}).then(() => {
-                    return res.json({
-                        error: false,
-                        message: "account has activated successfully!"
-                    });
-                })
+                  return res.json({
+                      error: false,
+                      message: "account has activated successfully!"
+                  });
+                });
+              });
+
             }
             if (!user) {
                 console.log(req);
@@ -256,14 +313,15 @@ router.post('/changepassword/accept', auth.optional, (req, res, next) => {
             message: "error in check userExists"
           });
         if (user) {
-          user.setPassword(json.password);
-          user.save().then(() => {
-            return res.json({
-              error: false,
-              message: "ok"
+          token.delete().then(() => {
+            user.setPassword(json.password);
+            user.save().then(() => {
+              return res.json({
+                error: false,
+                message: "ok"
+              });
             });
-          });
-          
+          });          
         }
       });
   })
@@ -298,7 +356,7 @@ router.get('/changemail/request/:email', auth.optional, (req, res, next) => {
   });
 });
 
-//POST accept password change
+//POST accept email change
 router.post('/changemail/accept', auth.optional, (req, res, next) => {
   var json = req.body;
 
@@ -327,14 +385,15 @@ router.post('/changemail/accept', auth.optional, (req, res, next) => {
             message: "error in check userExists"
           });
         if (user) {
-          user.email = json.email;
-          user.save().then(() => {
-            return res.json({
-              error: false,
-              message: "ok"
+          token.delete().then(() => {
+            user.email = json.email;
+            user.save().then(() => {
+              return res.json({
+                error: false,
+                message: "ok"
+              });
             });
-          });
-          
+          });          
         }
       });
     if (!token)
@@ -343,6 +402,71 @@ router.post('/changemail/accept', auth.optional, (req, res, next) => {
         message: "token not found"
       });
   })
+});
+
+//GET link vk profile to current logged account
+router.get('/linkvk', auth.required, (req, res, next) => {
+  res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.app_id + '&redirect_uri=' + cfg.redirect_uri + '&display=popup&response_type=code');
+});
+
+//GET vk callback (used after user logged in vk profile using /linkvk)
+router.get('/linkvk/callback', auth.required, (req, res, next) => {
+
+  const { payload: { id } } = req;
+
+  request({
+    method: 'GET',
+    url: 'https://oauth.vk.com/access_token?client_id=' + cfg.app_id + '&client_secret=' + cfg.client_secret + '&redirect_uri=' + cfg.redirect_uri + '&code=' + req.query.code,
+   }, function (error, response, body) {
+   if (error) {
+     console.log(error);
+     return res.json({
+       error: true,
+       error: error
+     });
+   }
+   if (!error && response.statusCode == 200) {
+
+    Users.findOne({_id: id}, function(err, user) {
+      if (err) {
+        console.log("ban nahooi"); 
+        return res.json({
+          error: true,
+          message: "error in check userExists",
+          error: err
+        });
+      }
+      if (!user)
+        return res.json({
+          error: true,
+          message: "user not found!"
+        })
+      var parsed = JSON.parse(body);
+      Users.findOne({ vk_id: parsed.user_id}, function(err, user) {
+      if (err) {
+        console.log("ban nahooi"); 
+        return res.json({
+          error: true,
+          message: "error in check userExists",
+          error: err
+        });
+      }
+      if (user)
+        return res.json({
+          error: true,
+          message: "account with that vk user already exists!"
+        });
+      if (!user)
+        user.updateOne({ vk_id: JSON.parse(body).user_id }).then(() => {
+          return res.json({
+            error: false,
+            message: "vk account successfully linked!"
+          });
+        });
+      });
+    });
+   }
+  });
 });
 
 module.exports = router;
