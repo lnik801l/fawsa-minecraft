@@ -219,6 +219,11 @@ router.get('/changepassword/request/:email', auth.optional, (req, res, next) => 
 
       });
     }
+    if (!user)
+      return res.json({
+        error: true,
+        message: "user with requested email not found"
+      });
   });
 });
 
@@ -285,6 +290,11 @@ router.get('/changemail/request/:email', auth.optional, (req, res, next) => {
 
       });
     }
+    if (!user)
+      return res.json({
+        error: true,
+        message: "user with requested email not found"
+      });
   });
 });
 
