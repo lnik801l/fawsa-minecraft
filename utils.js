@@ -8,3 +8,8 @@ module.exports.project_server_check = function(projectname, servername) {
                 boolean = true;
     return boolean;
 }
+module.exports.timestamp_after_days = function(number) {
+    var date = new Date(Date.now());
+    date.setDate(date.getDate() + number);
+    return (date.getTime() / 1000 | 0);
+}

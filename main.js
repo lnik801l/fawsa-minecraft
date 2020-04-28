@@ -32,11 +32,13 @@ mongoose.connect('mongodb://localhost/db', {useNewUrlParser: true, useUnifiedTop
 mongoose.set('debug', true);
 
 //Models & routes
-require('./models/users');
-require('./models/skins');
-require('./models/emailtokens');
-require('./models/money');
-require('./models/cart');
+
+//adding ALL models recursively (ибо заебало вручную дописывать модели)
+require("fs").readdirSync(require("path").join(__dirname, "models")).forEach(function(file) {
+  if (file.endsWith(".js"))
+    require("./models/" + file);
+});
+
 require('./config/passport');
 app.use(require('./routes'));
 

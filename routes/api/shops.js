@@ -3,6 +3,7 @@ const router = require('express').Router();
 const auth = require('../auth');
 const Users = mongoose.model('Users');
 const Cart = mongoose.model('Carts');
+const Group = mongoose.model('Groups');
 const { Image } = require('image-js');
 const cfg = require('../../config/constants');
 const fs = require("fs");
@@ -537,6 +538,156 @@ router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res
       });
 
     });
+});
+
+//POST add donate group for specific project (admin required)
+router.post('/:project/addgroup', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const json = req.body;
+  var boolean = false;
+
+  for (project in cfg.projects) 
+    if (req.params.project == project)
+        boolean = true;
+  
+  if (!boolean)
+    return res.json({
+      error: true,
+      message: "server or project does not exists!"
+    });
+  if (!json.name || !json.lp_name || !json.expires_in_days || !json.icon_url || !json.cost)
+    return res.json({
+      error: true,
+      message: "malformed query"
+    });
+
+  Users.findById(id)
+    .then((user) => {
+      
+      if(!user) {
+        return res.sendStatus(400);
+      }
+      if (!user.is_admin)
+        return res.json({
+          error: true,
+          message: "you are not admin!"
+        });
+      if (user.is_admin) {
+        Group.findOne({ project: req.params.project, name: json.name, cost: json.cost, expires_in_days: json.expires_in_days }, function(err, group) {
+          if (err)
+            res.json({
+              error: true,
+              message: "error in check groupExists"
+            });
+          if (group)
+            res.json({
+              error: true,
+              message: "group already exists!"
+            });
+          if (!group)
+            newgroup = new Group({
+              name: json.name,
+              lp_name: json.lp_name,
+              project: req.params.project,
+              expires_in_days: json.expires_in_days,
+              icon_url: json.icon_url,
+              cost: json.cost
+            }).save().then(() => {
+              return res.json({
+                error: false,
+                message: "group successfully added!"
+              });
+            });
+        });
+      }
+
+    });
+});
+
+//POST delete donate group for specific project (admin required)
+router.post('/:project/deletegroup', auth.required, (req, res, next) => {
+  const { payload: { id } } = req;
+  const json = req.body;
+  var boolean = false;
+
+  for (project in cfg.projects) 
+    if (req.params.project == project)
+        boolean = true;
+  
+  if (!boolean)
+    return res.json({
+      error: true,
+      message: "server or project does not exists!"
+    });
+  if (!json.name || !json.lp_name || !json.expires_in_days || !json.icon_url || !json.cost)
+    return res.json({
+      error: true,
+      message: "malformed query"
+    });
+
+  Users.findById(id)
+    .then((user) => {
+      
+      if(!user) {
+        return res.sendStatus(400);
+      }
+      if (!user.is_admin)
+        return res.json({
+          error: true,
+          message: "you are not admin!"
+        });
+      if (user.is_admin) {
+        Group.findOne({ project: req.params.project, name: json.name, cost: json.cost, expires_in_days: json.expires_in_days }, function(err, group) {
+          if (err)
+            return res.json({
+              error: true,
+              message: "error in check groupExists"
+            });
+          if (group) {
+            group.remove(function(err, document) {
+              if (err)
+                return res.json({
+                  error: true,
+                  message: "cannot remove group!"
+                });
+              if (document) {
+                return res.json({
+                  error: false,
+                  message: "OK"
+                })
+              }
+            });
+          }
+          if (!group)
+            return res.json({
+              error: true,
+              message: "group does not exists!"
+            });
+        });
+      }
+
+    });
+});
+
+//GET all groups for specific project (auth not required)
+router.get('/:project/getgroups', auth.optional, (req, res, next) => {
+  Group.find({ project: req.params.project }, function(err, collections) {
+    if (err)
+      return res.json({
+        error: true,
+        message: "error in find groups!"
+      });
+    if (collections) 
+      return res.json({
+        error: false,
+        groups: collections
+      });
+    if (!collections)
+      return res.json({
+        errror: true,
+        message: "groups for that project not found!"
+      });
+  });
 });
 
 module.exports = router;

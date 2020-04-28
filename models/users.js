@@ -8,6 +8,10 @@ const { Schema } = mongoose;
 const UsersSchema = new Schema({
   username: String,
   activated: Number,
+  is_admin: {
+    type: Boolean,
+    default: false
+  },
   refer: String,
   vk_id: String,
   email: String,
