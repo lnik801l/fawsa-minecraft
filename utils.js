@@ -13,3 +13,9 @@ module.exports.timestamp_after_days = function(number) {
     date.setDate(date.getDate() + number);
     return (date.getTime() / 1000 | 0);
 }
+module.exports.bigIntSerializer = function(num){
+    return {
+      type: "BigInt",
+      value: num.toString()
+    };
+  }

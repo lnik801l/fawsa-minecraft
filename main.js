@@ -6,6 +6,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const errorHandler = require('errorhandler');
 
+const cfg = require('./config/constants');
+
 //Configure mongoose's promise to global promise
 mongoose.promise = global.Promise;
 
@@ -28,7 +30,7 @@ if(!isProduction) {
 }
 
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/db', {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect('mongodb://localhost/' + cfg.db_main, {useNewUrlParser: true, useUnifiedTopology: true});
 mongoose.set('debug', true);
 
 //Models & routes

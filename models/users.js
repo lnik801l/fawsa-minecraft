@@ -8,7 +8,7 @@ const { Schema } = mongoose;
 const UsersSchema = new Schema({
   username: String,
   activated: Number,
-  is_admin: {
+  is_gadmin: {
     type: Boolean,
     default: false
   },
