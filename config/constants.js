@@ -9,8 +9,8 @@ module.exports.vk_login_redirect_uri = "http://localhost:8000/api/users/vklogin/
 
 module.exports.dc_redirect_uri = "http://localhost:8000/api/users/linkdc/callback";
 module.exports.dc_login_redirect_uri = "http://localhost:8000/api/users/dclogin/callback";
-module.exports.dc_client_id = '705165732153131049';
-module.exports.dc_client_secret = '1taV-jUpzex4PGMf55ZHqKiT8irIUKhm';
+module.exports.dc_client_id = '';
+module.exports.dc_client_secret = '';
 
 module.exports.mongodb_url = "mongodb://127.0.0.1:27017/"
 module.exports.db_main = "db";

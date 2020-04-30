@@ -122,12 +122,12 @@ router.post('/login', auth.optional, (req, res, next) => {
 
 });
 
-//GET link vk profile to current logged account
+//GET login through vk account
 router.get('/vklogin', auth.optional, (req, res, next) => {
-    res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.app_id + '&redirect_uri=' + cfg.login_redirect_uri + '&display=popup&response_type=code');
+    res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.vk_app_id + '&redirect_uri=' + cfg.vk_login_redirect_uri + '&display=popup&response_type=code');
 });
 
-//GET vk callback (used after user logged in vk profile using /linkvk)
+//GET vk callback (used after user logged in vk profile using /vklogin)
 router.get('/vklogin/callback', auth.optional, (req, res, next) => {
 
     request({
@@ -169,6 +169,84 @@ router.get('/vklogin/callback', auth.optional, (req, res, next) => {
                         return res.json({ error: false, user: luser.toAuthJSON() });
                     }
                 }
+            });
+        }
+    });
+});
+
+//GET login through discord account
+router.get('/dclogin', auth.optional, (req, res, next) => {
+    res.redirect('https://discordapp.com/api/oauth2/authorize?client_id=' + cfg.dc_client_id + '&redirect_uri=' + cfg.dc_login_redirect_uri + '&response_type=code&scope=identify');
+});
+
+//GET dc callback (used after user logged in dc profile using /linkdc)
+router.get('/dclogin/callback', auth.optional, (req, res, next) => {
+
+    request({
+        uri: 'https://discordapp.com/api/v6/oauth2/token',
+        form: {
+            client_id: cfg.dc_client_id,
+            client_secret: cfg.dc_client_secret,
+            grant_type: 'authorization_code',
+            code: req.query.code,
+            redirect_uri: cfg.dc_login_redirect_uri,
+            scope: 'identify'
+        },
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }, function(error, response) {
+        if (error) {
+            console.log(error);
+            return res.json({
+                error: true,
+                error: error
+            });
+        }
+        if (!error) {
+            var answer = JSON.parse(response.body);
+            request({
+                uri: 'https://discordapp.com/api/users/@me',
+                method: 'GET',
+                headers: {
+                    'Authorization': answer.token_type + ' ' + answer.access_token
+                }
+            }, function(error, response) {
+                if (error) {
+                    console.log(error);
+                    return res.json({
+                        error: true,
+                        error: error
+                    });
+                }
+                const parsed = JSON.parse(response.body);
+
+                Users.findOne({ discord_id: parsed.id }, function(err, user) {
+                    if (err) {
+                        console.log(err);
+                        return res.json({
+                            error: true,
+                            message: "error in check userExists",
+                            error: err
+                        });
+                    }
+                    if (!user)
+                        return res.json({
+                            error: true,
+                            message: "user with that discord profile not found!"
+                        })
+                    if (user) {
+                        if (user.activated == 0) {
+                            return res.json({ error: true, message: "account is not activated!" });
+                        } else {
+                            const luser = user;
+                            luser.token = user.generateJWT();
+
+                            return res.json({ error: false, user: luser.toAuthJSON() });
+                        }
+                    }
+                });
             });
         }
     });
@@ -428,7 +506,7 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
                         message: "user not found!"
                     })
                 var parsed = JSON.parse(body);
-                Users.findOne({ vk_id: parsed.user_id }, function(err, user) {
+                Users.findOne({ vk_id: parsed.user_id }, function(err, u) {
                     if (err) {
                         console.log("ban nahooi");
                         return res.json({
@@ -437,12 +515,12 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
                             error: err
                         });
                     }
-                    if (user)
+                    if (u)
                         return res.json({
                             error: true,
                             message: "account with that vk user already exists!"
                         });
-                    if (!user)
+                    if (!u)
                         user.updateOne({ vk_id: JSON.parse(body).user_id }).then(() => {
                             return res.json({
                                 error: false,
@@ -517,8 +595,6 @@ router.get('/linkdc', auth.required, (req, res, next) => {
 //GET dc callback (used after user logged in dc profile using /linkdc)
 router.get('/linkdc/callback', auth.required, (req, res, next) => {
 
-    console.log(req.query.code);
-
     const { payload: { id } } = req;
 
     request({
@@ -559,10 +635,46 @@ router.get('/linkdc/callback', auth.required, (req, res, next) => {
                         error: error
                     });
                 }
+                const parsed = JSON.parse(response.body);
+                console.log(parsed.id);
                 if (!error) {
-                    return res.json({
-                        error: false,
-                        answer: JSON.parse(response.body)
+                    Users.findById(id, function(err, user) {
+                        if (err) {
+                            res.json({
+                                error: true,
+                                message: "error in check userExists"
+                            });
+                            console.log(err);
+                        }
+                        if (!user) {
+                            return res.json({
+                                error: true,
+                                message: "user not found!"
+                            });
+                        }
+                        if (user) {
+                            Users.findOne({ discord_id: parsed.id }, function(err, u) {
+                                if (err) {
+                                    console.log(err);
+                                    return res.json({
+                                        error: true,
+                                        message: "error in check userExists"
+                                    });
+                                }
+                                if (u)
+                                    return res.json({
+                                        error: true,
+                                        message: "account with that discord user already exists!"
+                                    });
+                                if (!u)
+                                    user.updateOne({ discord_id: parsed.id }).then(() => {
+                                        return res.json({
+                                            error: false,
+                                            message: "discord account successfully linked!"
+                                        });
+                                    });
+                            });
+                        }
                     });
                 }
             });
