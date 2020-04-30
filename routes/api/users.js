@@ -536,7 +536,6 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
 //GET dupe money (auth required)
 router.get('/:project/addmoney', auth.required, (req, res, next) => {
     var flag = true;
-    console.log(req.params.project);
     for (project in cfg.projects)
         if (project == req.params.project)
             flag = false;

@@ -15,7 +15,7 @@ const auth = require('../auth');
 var cache = {};
 
 function updateCache(project, server) {
-    const url = cfg.projects[project][server].offer_server_url;
+    const url = cfg.projects[project].servers[server].offer_server_url;
     console.log("[" + project + "] [" + server + "] interval");
     request({
         method: 'GET',
@@ -38,7 +38,7 @@ function updateCache(project, server) {
 }
 for (project in cfg.projects) {
     cache[project] = {};
-    for (server in cfg.projects[project]) {
+    for (server in cfg.projects[project].servers) {
         cache[project][server] = {};
         updateCache(project, server);
         setInterval(() => updateCache(project, server), 1000 * 60 * 5);
@@ -48,38 +48,26 @@ for (project in cfg.projects) {
 
 //GET all items from in-game shop (auth not required)
 router.get('/:project/:servername/getshopallitems', auth.optional, (req, res, next) => {
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (boolean) {
-        res.json({
-            error: cache[req.params.project][req.params.servername],
-            items: cache[req.params.project][req.params.servername]
-        });
-    } else {
-        res.json({
+    if (!utils.project_server_check(req.params.project, req.params.servername))
+        return res.json({
             error: true,
-            message: "project or server does not exists!"
+            message: "server or project does not exists!"
         });
-    }
+
+    return res.json({
+        error: cache[req.params.project][req.params.servername],
+        items: cache[req.params.project][req.params.servername]
+    });
+
 
 });
 
 //GET all items in cart (auth required)
 router.get('/:project/:servername/getcartitems', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -144,14 +132,8 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
 router.post('/:project/:servername/addtocart', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
     const item = req.body;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -239,14 +221,8 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
 //GET clear cart (auth required)
 router.get('/:project/:servername/clearcart', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -295,14 +271,8 @@ router.get('/:project/:servername/clearcart', auth.required, (req, res, next) =>
 router.post('/:project/:servername/delcartitems', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
     const items = req.body;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -365,14 +335,8 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
 //GET buy all items from cart (auth required)
 router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -470,14 +434,8 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
 router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
     const items = req.body;
-    var boolean = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (req.params.servername == server)
-                boolean = true;
-
-    if (!boolean)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
             message: "server or project does not exists!"
@@ -704,17 +662,12 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
             message: "malformed request"
         })
 
-    var flag1 = false;
     var flag2 = false;
 
-    for (project in cfg.projects)
-        for (server in cfg.projects[project])
-            if (server == req.params.servername)
-                flag1 = true;
-    if (!flag1)
+    if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
-            message: "project or server does not exists!"
+            message: "server or project does not exists!"
         });
 
     for (project in cfg.projects_settings)

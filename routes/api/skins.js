@@ -80,7 +80,7 @@ router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) 
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
                                             if (err) {
                                                 console.log("ban nahooi");
                                                 return res.json({
@@ -147,8 +147,7 @@ router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) 
                 }
 
             });
-    }
-    else {
+    } else {
         return res.json({
             error: true,
             message: "authorization required!"
@@ -165,7 +164,7 @@ router.get('/:project/:servername/skin/:uuid.png', auth.optional, (req, res, nex
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
         if (err) {
             console.log("ban nahooi");
             return res.json({
@@ -205,7 +204,7 @@ router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) =
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
                         if (err) {
                             console.log("ban nahooi");
                             return res.json({
@@ -220,7 +219,7 @@ router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) =
                                     message: "ok"
                                 });
                             });
-                            
+
                         } else {
                             res.json({
                                 error: true,
@@ -232,8 +231,7 @@ router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) =
                 }
 
             });
-    }
-    else {
+    } else {
         return res.json({
             error: true,
             message: "authorization required!"
@@ -268,7 +266,7 @@ router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next)
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
                                             if (err) {
                                                 console.log("ban nahooi");
                                                 return res.json({
@@ -334,8 +332,7 @@ router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next)
                 }
 
             });
-    }
-    else {
+    } else {
         return res.json({
             error: true,
             message: "authorization required!"
@@ -359,7 +356,7 @@ router.get('/:project/:servername/deletecloak', auth.optional, (req, res, next) 
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
                         if (err) {
                             console.log("ban nahooi");
                             return res.json({
@@ -384,8 +381,7 @@ router.get('/:project/:servername/deletecloak', auth.optional, (req, res, next) 
                 }
 
             });
-    }
-    else {
+    } else {
         return res.json({
             error: true,
             message: "authorization required!"
@@ -402,7 +398,7 @@ router.get('/:project/:servername/cloak/:uuid.png', auth.optional, (req, res, ne
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
         if (err) {
             console.log("ban nahooi");
             return res.json({
@@ -439,7 +435,7 @@ router.get('/:project/:servername/preview/:uuid/:side', auth.optional, (req, res
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
         if (err) {
             console.log("ban nahooi");
             return res.json({

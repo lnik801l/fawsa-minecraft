@@ -1,6 +1,7 @@
 {
   "lockfileVersion": 1,
   "dependencies": {
+    "@charlesstover/quicksort": "^1.0.2",
     "canvas": "^2.6.1",
     "cors": "^2.8.5",
     "crypto-random-string": "^3.2.0",
@@ -10,6 +11,7 @@
     "express-session": "^1.17.1",
     "image-js": "^0.21.9",
     "jsonwebtoken": "^8.5.1",
+    "md5": "^2.2.1",
     "mongoose": "^5.9.10",
     "morgan": "^1.10.0",
     "nbt": "^0.8.1",
@@ -17,6 +19,7 @@
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
     "request": "^2.88.2",
+    "sha1": "^1.1.1",
     "uuid": "^7.0.3"
   }
 }

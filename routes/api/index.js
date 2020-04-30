@@ -7,5 +7,6 @@ router.use('/shops', require('./shops'));
 router.use('/inventory', require('./inventory'));
 router.use('/icons', require('./icons'));
 router.use('/launcher', require('./launcher'));
+router.use('/rewards', require('./rewards'));
 
 module.exports = router;
