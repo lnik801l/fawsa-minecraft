@@ -5,6 +5,7 @@ module.exports.vk_app_id = 1;
 module.exports.vk_client_secret = "";
 module.exports.vk_redirect_uri = "http://localhost:8000/api/users/linkvk/callback";
 module.exports.vk_login_redirect_uri = "http://localhost:8000/api/users/vklogin/callback";
+module.exports.vk_news_parser_service_key = 'a91cfafea91cfafea91cfafe46a96d4bcdaa91ca91cfafef7ad13fdad21292557f04e24';
 
 module.exports.dc_redirect_uri = "http://localhost:8000/api/users/linkdc/callback";
 module.exports.dc_login_redirect_uri = "http://localhost:8000/api/users/dclogin/callback";
@@ -16,6 +17,7 @@ module.exports.db_main = "db";
 module.exports.projects = {
     galaxy: {
         settings: {
+            vk_group_id: '-143258276',
             rewards_params: {
                 mctop_secret: '',
                 topcraft_secret: '',
@@ -34,6 +36,7 @@ module.exports.projects = {
     },
     basic: {
         settings: {
+            vk_group_id: '',
             rewards_params: {
                 mctop_secret: '',
                 topcraft_secret: '',

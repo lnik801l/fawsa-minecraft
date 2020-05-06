@@ -13,6 +13,7 @@
     "jsonwebtoken": "^8.5.1",
     "md5": "^2.2.1",
     "mongoose": "^5.9.10",
+    "mongoose-long": "^0.3.0",
     "morgan": "^1.10.0",
     "nbt": "^0.8.1",
     "nodemailer": "^6.4.6",

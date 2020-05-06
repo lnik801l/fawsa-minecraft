@@ -2,10 +2,18 @@ const cfg = require('./config/constants');
 
 module.exports.project_server_check = function(projectname, servername) {
     var boolean = false;
-    if (cfg.projects[projectname])
-        for (server in cfg.projects[projectname].servers)
-            if (servername == server)
-                boolean = true;
+    if (servername == null) {
+        if (cfg.projects[projectname])
+            for (project in cfg.projects)
+                if (project == projectname)
+                    boolean = true;
+    } else {
+        if (cfg.projects[projectname])
+            for (server in cfg.projects[projectname].servers)
+                if (servername == server)
+                    boolean = true;
+    }
+
     return boolean;
 }
 module.exports.timestamp_after_days = function(number) {

@@ -572,7 +572,7 @@ router.get('/:project/addmoney', auth.required, (req, res, next) => {
                         });
                     }
                     if (money) {
-                        money.updateOne({ money: money.money + 1000 }).then(() => {
+                        money.updateOne({ $inc: { money: 1000 } }).then(() => {
                             return res.json({
                                 error: false,
                                 message: "BANNAXYI"

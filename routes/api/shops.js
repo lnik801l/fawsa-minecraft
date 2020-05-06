@@ -36,14 +36,18 @@ function updateCache(project, server) {
         }
     })
 }
-for (project in cfg.projects) {
-    cache[project] = {};
-    for (server in cfg.projects[project].servers) {
-        cache[project][server] = {};
-        updateCache(project, server);
-        setInterval(() => updateCache(project, server), 1000 * 60 * 5);
+setInterval(() => {
+    for (project in cfg.projects) {
+        if (!cache[project])
+            cache[project] = {};
+        for (server in cfg.projects[project].servers) {
+            if (!cache[project][server])
+                cache[project][server] = {};
+            updateCache(project, server);
+        }
     }
-}
+}, 1000 * 60 * 5);
+
 
 
 //GET all items from in-game shop (auth not required)
@@ -670,15 +674,6 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
             message: "server or project does not exists!"
         });
 
-    for (project in cfg.projects_settings)
-        if (project == req.params.project)
-            flag2 = true;
-    if (!flag2)
-        return res.json({
-            error: true,
-            message: "configure connection for that project!"
-        });
-
     Users.findById(id)
         .then((user) => {
             if (!user)
@@ -714,7 +709,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
 
                                 MongoClient.connect(cfg.mongodb_url, function(err, db) {
                                     if (err) throw err;
-                                    var db_project = db.db(cfg.projects_settings[req.params.project].db_name);
+                                    var db_project = db.db(cfg.projects[req.params.project].settings.db_name);
 
                                     db_project.collection("luckperms_uuid").findOne({ name: user.username }, function(err, uuid) {
                                         if (err)
