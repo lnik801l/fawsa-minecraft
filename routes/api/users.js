@@ -90,6 +90,13 @@ router.post('/login', auth.optional, (req, res, next) => {
         });
     }
 
+    if (!user.captcha) {
+        return res.status(422).json({
+            error: true,
+            message: "captcha is required"
+        });
+    }
+
     if (!user.password) {
         return res.status(422).json({
             error: true,
@@ -97,28 +104,69 @@ router.post('/login', auth.optional, (req, res, next) => {
         });
     }
 
-    if (user && user.username && user.password) {
-        return passport.authenticate('local', (err, passportUser, info) => {
-            if (err) {
-                return next(err);
+    if (user && user.username && user.password && user.captcha.length > 0) {
+        request({
+            uri: 'https://www.google.com/recaptcha/api/siteverify',
+            form: {
+                secret: cfg.recaptcha_secret,
+                response: user.captcha
+            },
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
+        }, function(err, response) {
+            if (err)
+                return res.json({
+                    error: true,
+                    message: 'error in captcha check'
+                })
+            if (response) {
+                let json = JSON.parse(response.body);
+                if (!json.success || json.action != 'login') {
+                    return res.json({
+                        error: true,
+                        message: "not valid captcha"
+                    })
+                }
+                if (json.score <= 0.5)
+                    return res.json({
+                        error: true,
+                        message: 'your actions are like a bot. refresh page and try again'
+                    })
+                if (json.success) {
+                    passport.authenticate('local', (err, passportUser, info) => {
+                        if (err) {
+                            console.log("err");
+                            return next(err);
+                        }
 
-            if (passportUser) {
-                if (passportUser.activated == 0) {
-                    return res.json({ error: true, message: "account is not activated!" });
-                } else {
-                    const user = passportUser;
-                    user.token = passportUser.generateJWT();
+                        if (passportUser) {
+                            if (passportUser.activated == 0) {
+                                return res.json({ error: true, message: "account is not activated!" });
+                            } else {
+                                const user = passportUser;
+                                user.token = passportUser.generateJWT();
 
-                    return res.json({ error: false, user: user.toAuthJSON() });
+                                return res.json({ error: false, user: user.toAuthJSON() });
+                            }
+                        }
+
+                        return res.status(400).json({ error: true, errors: info });
+                    })(req, res, next);
+
                 }
             }
+        });
 
-            return res.status(400).json({ error: true, errors: info });
-        })(req, res, next);
     }
+    if (user.captcha.length <= 0)
+        return res.json({
+            error: true,
+            message: "incorrect captcha!"
+        })
 
-    return res.json({ error: true, message: "incorrect username or password!" });
+    //return res.json({ error: true, message: "incorrect username or password!" });
 
 });
 
@@ -319,32 +367,72 @@ router.get('/activate/:token', auth.optional, (req, res, next) => {
 
 });
 
-//GET request password change
-router.get('/changepassword/request/:email', auth.optional, (req, res, next) => {
-    Users.findOne({ email: req.params.email }, function(error, user) {
-        if (error)
-            return res.json({
-                error: true,
-                message: "error in check userExists"
-            });
-        if (user) {
-            emailToken = new EmailTokens({ linked_user_id: user._id, type: "passwdchange" });
-            emailToken.token = emailToken.genToken();
-            emailToken.save().then(() => {
+//POST request password change
+router.post('/changepassword/request', auth.optional, (req, res, next) => {
+    var json = req.body;
+    if (!json.email || !json.captcha)
+        return res.json({
+            error: true,
+            message: "corrupted request!"
+        });
 
-                mailer.sendMail(user.email, emailToken.token);
-                res.json({
-                    error: false,
-                    message: "email successfully sent!"
-                });
-
-            });
+    request({
+        uri: 'https://www.google.com/recaptcha/api/siteverify',
+        form: {
+            secret: cfg.recaptcha_secret,
+            response: json.captcha
+        },
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
-        if (!user)
+    }, function(err, response) {
+        let enc_res = JSON.parse(response.body);
+        if (err || !enc_res)
             return res.json({
                 error: true,
-                message: "user with requested email not found"
-            });
+                message: "error in captcha check"
+            })
+        if (enc_res) {
+            if (!enc_res.success) {
+                return res.json({
+                    error: true,
+                    message: "not valid captcha"
+                })
+            }
+            if (enc_res.score <= 0.5)
+                return res.json({
+                    error: true,
+                    message: 'your actions are like a bot. refresh page and try again'
+                })
+            if (enc_res.success) {
+                Users.findOne({ email: json.email }, function(error, user) {
+                    if (error)
+                        return res.json({
+                            error: true,
+                            message: "error in check userExists"
+                        });
+                    if (user) {
+                        emailToken = new EmailTokens({ linked_user_id: user._id, type: "passwdchange" });
+                        emailToken.token = emailToken.genToken();
+                        emailToken.save().then(() => {
+
+                            mailer.sendMail(user.email, emailToken.token);
+                            res.json({
+                                error: false,
+                                message: "email successfully sent!"
+                            });
+
+                        });
+                    }
+                    if (!user)
+                        return res.json({
+                            error: true,
+                            message: "user with requested email not found"
+                        });
+                });
+            }
+        }
     });
 });
 
@@ -391,32 +479,64 @@ router.post('/changepassword/accept', auth.optional, (req, res, next) => {
     })
 });
 
-//GET request email change
-router.get('/changemail/request/:email', auth.optional, (req, res, next) => {
-    Users.findOne({ email: req.params.email }, function(error, user) {
-        if (error)
+//POST request email change
+router.post('/changemail/request', auth.optional, (req, res, next) => {
+    var json = req.body;
+    if (!json.email || !json.captcha)
+        return res.json({
+            error: true,
+            message: "corrupted request!"
+        });
+
+    request({
+        uri: 'https://www.google.com/recaptcha/api/siteverify',
+        form: {
+            secret: cfg.recaptcha_secret,
+            response: json.captcha
+        },
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }, function(err, response) {
+        let enc_res = JSON.parse(response.body);
+        if (err || !enc_res)
             return res.json({
                 error: true,
-                message: "error in check userExists"
-            });
-        if (user) {
-            emailToken = new EmailTokens({ linked_user_id: user._id, type: "mailchange" });
-            emailToken.token = emailToken.genToken();
-            emailToken.save().then(() => {
+                message: "error in captcha check"
+            })
+        if (enc_res.score <= 0.5)
+            return res.json({
+                error: true,
+                message: 'your actions are like a bot. refresh page and try again'
+            })
+        if (enc_res) {
+            Users.findOne({ email: req.params.email }, function(error, user) {
+                if (error)
+                    return res.json({
+                        error: true,
+                        message: "error in check userExists"
+                    });
+                if (user) {
+                    emailToken = new EmailTokens({ linked_user_id: user._id, type: "mailchange" });
+                    emailToken.token = emailToken.genToken();
+                    emailToken.save().then(() => {
 
-                mailer.sendMail(user.email, emailToken.token);
-                res.json({
-                    error: false,
-                    message: "email successfully sent!"
-                });
+                        mailer.sendMail(user.email, emailToken.token);
+                        res.json({
+                            error: false,
+                            message: "email successfully sent!"
+                        });
 
+                    });
+                }
+                if (!user)
+                    return res.json({
+                        error: true,
+                        message: "user with requested email not found"
+                    });
             });
         }
-        if (!user)
-            return res.json({
-                error: true,
-                message: "user with requested email not found"
-            });
     });
 });
 

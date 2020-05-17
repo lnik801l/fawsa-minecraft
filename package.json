@@ -12,6 +12,7 @@
     "image-js": "^0.21.9",
     "jsonwebtoken": "^8.5.1",
     "md5": "^2.2.1",
+    "minecraft-ping": "^1.0.0",
     "mongoose": "^5.9.10",
     "mongoose-long": "^0.3.0",
     "morgan": "^1.10.0",

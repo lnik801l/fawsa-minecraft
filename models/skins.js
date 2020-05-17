@@ -3,11 +3,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const SkinShema = new Schema({
-  linked_uuid: String,
-  linked_projectname: String,
-  linked_servername: String,
-  skin: String,
-  cloak: String
+    linked_uuid: String,
+    linked_projectname: String,
+    skin: String,
+    cloak: String
 });
 
 /*

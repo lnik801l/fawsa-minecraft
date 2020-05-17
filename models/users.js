@@ -17,6 +17,14 @@ const UsersSchema = new Schema({
     discord_id: String,
     email: String,
     uuid: String,
+    reg_date: {
+        type: Date,
+        default: new Date()
+    },
+    notify_method: {
+        type: Number,
+        default: 0
+    },
     hash: String,
     salt: String,
 });
@@ -57,6 +65,8 @@ UsersSchema.methods.toAuthJSON = function() {
         uuid: this.uuid,
         money: this.money,
         activated: this.activated,
+        reg_date: this.reg_date,
+        notify_method: this.notify_method,
         token: this.generateJWT()
     };
 };

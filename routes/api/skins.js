@@ -55,11 +55,11 @@ function getPart(src, x, y, width, height, scale) {
 }
 
 //POST upload skin route (auth required)
-router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) => {
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+router.post('/:project/uploadskin', auth.optional, (req, res, next) => {
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
-            message: "server or project does not exists!"
+            message: "project does not exists!"
         });
 
     if (req.payload != null) {
@@ -80,7 +80,7 @@ router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) 
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
                                             if (err) {
                                                 console.log("ban nahooi");
                                                 return res.json({
@@ -102,7 +102,6 @@ router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) 
                                                 const newSkin = new Skins({
                                                     linked_uuid: user.uuid,
                                                     linked_projectname: req.params.project,
-                                                    linked_servername: req.params.servername,
                                                     skin: base64Data
                                                 });
                                                 return newSkin.save()
@@ -156,17 +155,17 @@ router.post('/:project/:servername/uploadskin', auth.optional, (req, res, next) 
 
 });
 
-router.get('/:project/:servername/skin/:uuid.png', auth.optional, (req, res, next) => {
+router.get('/:project/skin/:uuid.png', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
-            message: "server or project does not exists!"
+            message: "project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
         if (err) {
-            console.log("ban nahooi");
+            console.log(err);
             return res.json({
                 error: true,
                 message: "error in check skinExists"
@@ -184,17 +183,17 @@ router.get('/:project/:servername/skin/:uuid.png', auth.optional, (req, res, nex
 
             res.end(img);
         } else {
-            res.sendFile(cfg.appDir + cfg.skinsDir + req.params.project + "/" + req.params.servername + "/skins/default.png");
+            res.sendFile(cfg.appDir + cfg.skinsDir + req.params.project + "/default.png");
         }
     });
 });
 
-router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) => {
+router.get('/:project/deleteskin', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
-            message: "server or project does not exists!"
+            message: "project does not exists!"
         });
 
     if (req.payload != null) {
@@ -204,9 +203,9 @@ router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) =
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
                         if (err) {
-                            console.log("ban nahooi");
+                            console.error(err);
                             return res.json({
                                 error: true,
                                 message: "error in check skinExists"
@@ -240,12 +239,12 @@ router.get('/:project/:servername/deleteskin', auth.optional, (req, res, next) =
 
 });
 //POST upload cloak route (auth required)
-router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next) => {
+router.post('/:project/uploadcloak', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
-            message: "server or project does not exists!"
+            message: "project does not exists!"
         });
 
     if (req.payload != null) {
@@ -266,9 +265,9 @@ router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next)
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
                                             if (err) {
-                                                console.log("ban nahooi");
+                                                console.error(err);
                                                 return res.json({
                                                     error: true,
                                                     message: "error in check skinExists"
@@ -287,7 +286,6 @@ router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next)
                                                 const newSkin = new Skins({
                                                     linked_uuid: user.uuid,
                                                     linked_projectname: req.params.project,
-                                                    linked_servername: req.params.servername,
                                                     cloak: base64Data
                                                 });
                                                 return newSkin.save()
@@ -341,12 +339,12 @@ router.post('/:project/:servername/uploadcloak', auth.optional, (req, res, next)
 
 });
 
-router.get('/:project/:servername/deletecloak', auth.optional, (req, res, next) => {
+router.get('/:project/deletecloak', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
-            message: "server or project does not exists!"
+            message: "project does not exists!"
         });
 
     if (req.payload != null) {
@@ -356,9 +354,9 @@ router.get('/:project/:servername/deletecloak', auth.optional, (req, res, next) 
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
                         if (err) {
-                            console.log("ban nahooi");
+                            console.error(err);
                             return res.json({
                                 error: true,
                                 message: "error in check skinExists"
@@ -390,17 +388,17 @@ router.get('/:project/:servername/deletecloak', auth.optional, (req, res, next) 
 
 });
 
-router.get('/:project/:servername/cloak/:uuid.png', auth.optional, (req, res, next) => {
+router.get('/:project/cloak/:uuid.png', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
         if (err) {
-            console.log("ban nahooi");
+            console.error(err);
             return res.json({
                 error: true,
                 message: "error in check skinExists"
@@ -427,17 +425,17 @@ router.get('/:project/:servername/cloak/:uuid.png', auth.optional, (req, res, ne
     });
 });
 
-router.get('/:project/:servername/preview/:uuid/:side', auth.optional, (req, res, next) => {
+router.get('/:project/preview/:uuid/:side', auth.optional, (req, res, next) => {
 
-    if (!utils.project_server_check(req.params.project, req.params.servername) && (req.params.project != "all" || req.params.servername != "all"))
+    if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
         if (err) {
-            console.log("ban nahooi");
+            console.error(err);
             return res.json({
                 error: true,
                 message: "error in check skinExists"
@@ -465,7 +463,7 @@ router.get('/:project/:servername/preview/:uuid/:side', auth.optional, (req, res
 
                 });
             } else {
-                loadImage(fs.readFileSync(cfg.appDir + cfg.skinsDir + req.params.project + "/" + req.params.servername + "/skins/default.png")).then(img => {
+                loadImage(fs.readFileSync(cfg.appDir + cfg.skinsDir + req.params.project + "/default.png")).then(img => {
 
                     const localHead = getPart(img, 8 * img.width / 64, 8 * img.width / 64, 8 * img.width / 64, 8 * img.width / 64, 1);
                     var ctx = localHead.getContext('2d');
@@ -475,7 +473,14 @@ router.get('/:project/:servername/preview/:uuid/:side', auth.optional, (req, res
                         octx = oc.getContext('2d');
                     octx.patternQuality = "fast";
                     octx.drawImage(localHead, 0, 0, oc.width, oc.height);
-                    res.send("<img src=\"" + oc.toDataURL() + "\" />");
+
+                    var img = oc.toBuffer();
+
+                    res.writeHead(200, {
+                        'Content-Type': 'image/png',
+                        'Content-Length': img.length
+                    });
+                    res.end(img);
 
                 });
             }

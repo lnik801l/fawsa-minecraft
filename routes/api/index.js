@@ -10,5 +10,6 @@ router.use('/launcher', require('./launcher'));
 router.use('/rewards', require('./rewards'));
 router.use('/bonuscodes', require('./bonuscodes'));
 router.use('/news', require('./news'));
+router.use('/monitoring', require('./monitoring'));
 
 module.exports = router;

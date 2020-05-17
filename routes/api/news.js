@@ -23,7 +23,53 @@ let updateNews = function(project) {
         if (!error && response.statusCode == 200) {
             if (!cache[project])
                 cache[project] = {};
-            cache[project].posts = JSON.parse(body).response;
+            if (!cache[project].signers_info)
+                cache[project].signers_info = {};
+
+            var temp = JSON.parse(body).response.items;
+
+            request({
+                method: 'GET',
+                url: 'http://api.vk.com/method/groups.getById?group_id=' + Math.abs(cfg.projects[p].settings.vk_group_id) +
+                    '&access_token=' + cfg.vk_news_parser_service_key +
+                    '&fields=name&v=5.3',
+            }, function(error, response, body) {
+                if (error) {
+                    console.log(error);
+                    cache[project].error = true;
+                }
+                if (!error && response.statusCode == 200) {
+                    cache[project].signers_info.group = JSON.parse(body).response[0];
+                }
+            })
+
+            for (i in temp) {
+                if (temp[i].text.length > 200) {
+                    temp[i].is_oppened = false;
+                    temp[i].short_text = temp[i].text.substr(0, 200) + '...';
+                    temp[i].temp_text = temp[i].text.substr(0, 200) + '...';
+
+                }
+                if (temp[i].signer_id && !cache[project].signers_info[temp[i].signer_id]) {
+                    request({
+                        method: 'GET',
+                        url: 'http://api.vk.com/method/users.get?user_ids=' + temp[i].signer_id +
+                            '&access_token=' + cfg.vk_news_parser_service_key +
+                            '&fields=photo_100,domain&v=5.3',
+                    }, function(error, response, body) {
+                        if (error) {
+                            console.log(error);
+                            cache[project].error = true;
+                        }
+                        if (!error && response.statusCode == 200) {
+                            var userInfo = JSON.parse(body).response[0];
+                            cache[project].signers_info[userInfo.id] = JSON.parse(body).response[0];
+                        }
+                    })
+                }
+            }
+
+            cache[project].posts = temp;
             cache[project].error = false;
         }
     })
@@ -47,7 +93,8 @@ router.get('/:project/getnews', auth.optional, function(req, res, next) {
         });
     return res.json({
         error: cache[req.params.project].error,
-        posts: cache[req.params.project].posts
+        posts: cache[req.params.project].posts,
+        signers_info: cache[req.params.project].signers_info
     });
 });
 

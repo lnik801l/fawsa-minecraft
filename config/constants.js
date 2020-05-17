@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
+module.exports.recaptcha_secret = '6Lc8KPYUAAAAAHssGSFoLXkEczYnEXm238T6ZSPL'
+
 module.exports.appDir = __dirname.substring(0, __dirname.length - 6);
+module.exports.skinsDir = 'routes/api/skins/'
 module.exports.vk_app_id = 1;
 module.exports.vk_client_secret = "";
 module.exports.vk_redirect_uri = "http://localhost:8000/api/users/linkvk/callback";
@@ -29,7 +32,15 @@ module.exports.projects = {
         servers: {
             main: {
                 offer_server_url: "http://localhost:8088",
-                serverdir: "/home/lnik801l/Рабочий стол/projects/spaceworld/galaxy/"
+                serverdir: "/home/lnik801l/Рабочий стол/projects/spaceworld/galaxy/",
+                host: 'localhost',
+                port: 25565
+            },
+            ban: {
+                offer_server_url: "http://localhost:8088",
+                serverdir: "/home/lnik801l/Рабочий стол/projects/spaceworld/galaxy/",
+                host: 'localhost',
+                port: 25566
             }
         }
 
@@ -48,7 +59,9 @@ module.exports.projects = {
         servers: {
             hitech: {
                 offer_server_url: "http://localhost:8088",
-                serverdir: "/home/lnik801l/Рабочий стол/projects/spaceworld/galaxy/"
+                serverdir: "/home/lnik801l/Рабочий стол/projects/spaceworld/galaxy/",
+                host: 'localhost',
+                port: 25566
             }
         }
 
