@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-module.exports.recaptcha_secret = '6Lc8KPYUAAAAAHssGSFoLXkEczYnEXm238T6ZSPL'
+module.exports.recaptcha_secret = ''
 
 module.exports.appDir = __dirname.substring(0, __dirname.length - 6);
 module.exports.skinsDir = 'routes/api/skins/'
