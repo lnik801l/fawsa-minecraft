@@ -7,6 +7,7 @@ const Money = mongoose.model('Money');
 var MongoClient = require('mongodb').MongoClient;
 const Long = require('mongodb').Long;
 const request = require('request');
+const fs = require('fs');
 
 const cfg = require('../../config/constants');
 const utils = require('../../utils');
@@ -31,11 +32,33 @@ function updateCache(project, server) {
             cache[project][server].error = true;
         }
         if (!error && response.statusCode == 200) {
-            cache[project][server].items = JSON.parse(body);
-            cache[project][server].error = false;
+            fs.readFile(cfg.appDir + 'items.json', function(err, buffer) {
+                if (err)
+                    return console.log(err);
+                let localCache = JSON.parse(body);
+                let translitions = JSON.parse(buffer.toString());
+                for (item in localCache) {
+                    localCache[item].name = translitions[localCache[item].itemstack.registry_name + ":" + localCache[item].itemstack.damage];
+                    localCache[item].id = item;
+                }
+                cache[project][server].items = localCache;
+                cache[project][server].error = false;
+            });
+
         }
     })
 }
+
+for (project in cfg.projects) {
+    if (!cache[project])
+        cache[project] = {};
+    for (server in cfg.projects[project].servers) {
+        if (!cache[project][server])
+            cache[project][server] = {};
+        updateCache(project, server);
+    }
+}
+
 setInterval(() => {
     for (project in cfg.projects) {
         if (!cache[project])
@@ -60,8 +83,8 @@ router.get('/:project/:servername/getshopallitems', auth.optional, (req, res, ne
         });
 
     return res.json({
-        error: cache[req.params.project][req.params.servername],
-        items: cache[req.params.project][req.params.servername]
+        error: cache[req.params.project][req.params.servername].error,
+        items: cache[req.params.project][req.params.servername].items
     });
 
 

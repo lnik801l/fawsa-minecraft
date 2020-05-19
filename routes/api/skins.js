@@ -107,6 +107,7 @@ router.post('/:project/uploadskin', auth.optional, (req, res, next) => {
                                                 return newSkin.save()
                                                     .then(() => res.json({
                                                         error: false,
+                                                        message: 'Операция прошла успешно!',
                                                         width: image.width,
                                                         height: image.height
                                                     }));
@@ -404,7 +405,7 @@ router.get('/:project/cloak/:uuid.png', auth.optional, (req, res, next) => {
                 message: "error in check skinExists"
             });
         }
-        if (skin && skin.cloak.length > 1) {
+        if (skin && skin.cloak && skin.cloak.length > 1) {
             const im = skin.cloak;
             console.log(im);
 
@@ -459,7 +460,13 @@ router.get('/:project/preview/:uuid/:side', auth.optional, (req, res, next) => {
                         octx = oc.getContext('2d');
                     octx.patternQuality = "fast";
                     octx.drawImage(localHead, 0, 0, oc.width, oc.height);
-                    res.send("<img src=\"" + oc.toDataURL() + "\" />");
+
+                    res.writeHead(200, {
+                        'Content-Type': 'image/png',
+                        'Content-Length': oc.toBuffer().length
+                    });
+
+                    res.end(oc.toBuffer());
 
                 });
             } else {
