@@ -706,6 +706,65 @@ router.get('/:project/addmoney', auth.required, (req, res, next) => {
         });
 });
 
+//GET get balance (auth required)
+router.get('/:project/getmoney', auth.required, (req, res, next) => {
+    var flag = true;
+    for (project in cfg.projects)
+        if (project == req.params.project)
+            flag = false;
+    if (flag)
+        return res.json({
+            error: true,
+            message: "project does not exists!"
+        });
+
+    const { payload: { id } } = req;
+
+    Users.findById(id)
+        .then((user) => {
+            if (!user) {
+                return res.json({
+                    error: true,
+                    message: "error in check userExists"
+                });
+            }
+            if (user) {
+                Money.findOne({ linked_user_id: id, project: req.params.project }, function(err, money) {
+                    if (err)
+                        return res.json({
+                            error: true,
+                            message: "error in check moneyExists"
+                        });
+                    if (!money) {
+                        localMoney = new Money({ linked_user_id: id, project: req.params.project, money: 0, realmoney: 0, votes: 0 });
+                        localMoney.save().then(() => {
+                            return res.json({
+                                error: false,
+                                money: {
+                                    realmoney: 0,
+                                    money: 0,
+                                    votes: 0
+                                }
+                            });
+                        });
+                    }
+                    if (money) {
+                        return res.json({
+                            error: false,
+                            money: {
+                                realmoney: money.realmoney,
+                                money: money.money,
+                                votes: money.votes
+                            }
+                        })
+                    }
+
+                });
+            }
+
+        });
+});
+
 //GET link discord profile to current logged account
 router.get('/linkdc', auth.required, (req, res, next) => {
     res.redirect('https://discordapp.com/api/oauth2/authorize?client_id=' + cfg.dc_client_id + '&redirect_uri=' + cfg.dc_redirect_uri + '&response_type=code&scope=identify');

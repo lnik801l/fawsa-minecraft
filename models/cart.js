@@ -1,16 +1,19 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
-const uuidv4 = require('uuid').v4;
 
 const { Schema } = mongoose;
 
 const CartShema = new Schema({
-  linked_user_id: String,
-  linked_projectname: String,
-  linked_servername: String,
-  items: {},
-  bought_items: {}
+    linked_user_id: String,
+    linked_projectname: String,
+    linked_servername: String,
+    items: {
+        type: Array,
+        default: []
+    },
+    bought_items: {
+        type: Array,
+        default: []
+    }
 });
 
 
@@ -22,7 +25,7 @@ CartShema.methods.addItems = function(item, cart) {
         else
             console.log("corrupted item!");
     }
-    cart.updateOne({items: newCartItems});
+    cart.updateOne({ items: newCartItems });
 };
 
 

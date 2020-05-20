@@ -69,7 +69,7 @@ setInterval(() => {
             updateCache(project, server);
         }
     }
-}, 1000 * 60 * 5);
+}, 1000 * 60 * 1);
 
 
 
@@ -118,37 +118,48 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
 
                 }
                 if (cart) {
-                    var newItems = cart.items;
-                    var newBoughtItems = cart.bought_items;
-                    var flag = false;
-                    var flag1 = false;
-                    for (item in newItems) {
-                        if (!cache[req.params.project][req.params.servername].items[item]) {
-                            delete newItems[item];
+                    let tempItems = cart.items;
+                    let flag = false;
+
+                    tempItems.forEach(function(e, index, object) {
+                        if (!cache[req.params.project][req.params.servername].items[e.id]) {
+                            object.splice(index, 1);
                             flag = true;
                         }
-                    }
-                    for (item in newBoughtItems) {
-                        if (!cache[req.params.project][req.params.servername].items[item]) {
-                            delete newBoughtItems[item];
-                            flag1 = true;
-                        }
-                    }
+
+                    });
                     if (flag)
-                        cart.updateOne({ items: newItems });
-                    if (flag1)
-                        cart.updateOne({ bought_items: newBoughtItems });
-                    return res.json({
-                        error: false,
-                        message: "OK",
-                        items: cart.items,
-                        bought_items: cart.bought_items
-                    });
+                        cart.updateOne({ items: tempItems }).then(() => {
+                            return res.json({
+                                error: false,
+                                message: "OK",
+                                items: cart.items,
+                                bought_items: cart.bought_items
+                            });
+                        });
+                    else
+                        return res.json({
+                            error: false,
+                            message: "OK",
+                            items: cart.items,
+                            bought_items: cart.bought_items
+                        });
                 } else {
-                    return res.json({
-                        error: true,
-                        message: "cart == null!"
+                    new Cart({
+                        linked_user_id: user._id,
+                        linked_projectname: req.params.project,
+                        linked_servername: req.params.servername,
+                        items: [],
+                        bought_items: []
+                    }).save().then(() => {
+                        return res.json({
+                            error: false,
+                            message: "OK",
+                            items: [],
+                            bought_items: []
+                        });
                     });
+
                 }
             });
 
@@ -166,6 +177,7 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
             message: "server or project does not exists!"
         });
 
+
     return Users.findById(id)
         .then((user) => {
             if (!user) {
@@ -175,7 +187,7 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
             Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
                 if (err) {
 
-                    console.log("ban nahooi");
+                    console.log(err);
                     return res.json({
                         error: true,
                         message: "error in findCart"
@@ -183,18 +195,34 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
 
                 }
                 if (cart) {
-
-                    if (item) {
-                        var newCartItems = cart.items;
-                        for (i in item) {
-                            if (item[i].count && item[i].count > 0 && cache[req.params.project][req.params.servername].items[i])
-                                newCartItems[i] = item[i];
-                            else
-                                return res.json({
-                                    error: true,
-                                    message: "corrupted item(s)!"
-                                });
-                        }
+                    if (item instanceof Array) {
+                        let flag = false;
+                        item.forEach(e => {
+                            e.count = Number(e.count);
+                            if (e.count <= 0)
+                                flag = true;
+                        });
+                        if (flag)
+                            return res.json({
+                                error: true,
+                                message: "invalid count!"
+                            })
+                        if (cart.items == undefined || cart.items == null)
+                            var newCartItems = item;
+                        else
+                            var newCartItems = cart.items;
+                        item.forEach(e1 => {
+                            let flag = false;
+                            newCartItems.forEach(e2 => {
+                                if (e2.id == e1.id) {
+                                    e2.count += e1.count;
+                                    flag = true;
+                                }
+                            });
+                            if (!flag) {
+                                newCartItems.push(e1);
+                            }
+                        });
                         cart.updateOne({ items: newCartItems }).then(() => {
                             return res.json({
                                 error: false,
@@ -206,39 +234,34 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
                         console.log(item);
                         return res.json({
                             error: true,
-                            message: "item == null1!"
+                            message: "corrupted item(s)!"
                         });
                     }
 
                 } else {
                     console.log("no cart");
 
-                    if (item) {
-                        var newCartItems = {};
-                        for (i in item) {
-                            if (item[i].count && item[i].count > 0 && cache[req.params.project][req.params.servername].items[i])
-                                newCartItems[i] = item[i];
-                            else
-                                return res.json({
-                                    error: true,
-                                    message: "corrupted item(s)!"
-                                });
-                        }
-                        var newCart = new Cart({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername, items: newCartItems });
-                        newCart.save().then(() => {
+                    if (item instanceof Array) {
+                        new Cart({
+                            linked_user_id: user._id,
+                            linked_projectname: req.params.project,
+                            linked_servername: req.params.servername,
+                            items: item,
+                            bought_items: []
+                        }).save().then((createdCart) => {
                             return res.json({
                                 error: false,
-                                items: newCart.items
+                                items: createdCart.items
                             });
                         });
 
                     } else {
+                        console.log(item);
                         return res.json({
                             error: true,
-                            message: "item == null1!"
+                            message: "corrupted item(s)!"
                         });
                     }
-
                 }
             });
 
@@ -263,8 +286,7 @@ router.get('/:project/:servername/clearcart', auth.required, (req, res, next) =>
 
             Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
                 if (err) {
-
-                    console.log("ban nahooi");
+                    console.log(err);
                     return res.json({
                         error: true,
                         message: "error in findCart"
@@ -273,12 +295,17 @@ router.get('/:project/:servername/clearcart', auth.required, (req, res, next) =>
                 }
                 if (cart) {
 
-                    cart.updateOne({ items: {} });
-                    return res.json({
-                        error: false,
-                        message: "OK",
-                        cart: cart
+                    cart.updateOne({ items: [] }).then(() => {
+                        return res.json({
+                            error: false,
+                            message: "OK",
+                            cart: {
+                                items: [],
+                                bought_items: cart.bought_items
+                            }
+                        });
                     });
+
 
                 } else {
                     console.log("no cart");
@@ -314,7 +341,7 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
             Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
                 if (err) {
 
-                    console.log("ban nahooi");
+                    console.log(err);
                     return res.json({
                         error: true,
                         message: "error in findCart"
@@ -323,18 +350,26 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
                 }
                 if (cart) {
 
-                    if (items) {
-                        var newItems = {};
+                    if (items instanceof Array) {
+                        var newItems = [];
                         if (cart.items)
                             newItems = cart.items;
-                        for (i in items) {
-                            delete newItems[i];
-                        }
+
+                        newItems.forEach(function(e, index, object) {
+                            items.forEach(e1 => {
+                                if (e1 == e.id)
+                                    object.splice(index, 1);
+                            });
+
+                        });
                         cart.updateOne({ items: newItems }).then(() => {
                             return res.json({
                                 error: false,
                                 message: "OK",
-                                cart: cart
+                                cart: {
+                                    items: newItems,
+                                    bought_items: cart.bought_items
+                                }
                             });
                         });
                     } else {
@@ -359,8 +394,133 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
         });
 });
 
+//GET decrement item from cart (auth required)
+router.get('/:project/:servername/decrementitem/:id', auth.required, (req, res, next) => {
+    const { payload: { id } } = req;
+
+    if (!utils.project_server_check(req.params.project, req.params.servername))
+        return res.json({
+            error: true,
+            message: "server or project does not exists!"
+        });
+
+    Users.findById(id)
+        .then((user) => {
+            if (!user) {
+                return res.sendStatus(400);
+            }
+
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+                if (err) {
+
+                    console.log(err);
+                    return res.json({
+                        error: true,
+                        message: "error in findCart"
+                    });
+
+                }
+                if (cart) {
+
+                    let newItems = cart.items;
+                    newItems.forEach(function(e, index, object) {
+                        if (e.id == req.params.id)
+                            e.count--;
+                        if (e.count <= -1) {
+                            object.splice(index, 1);
+                        }
+
+                    });
+
+                    cart.updateOne({ items: newItems }).then(() => {
+                        return res.json({
+                            error: false,
+                            message: "OK",
+                            cart: {
+                                items: newItems,
+                                bought_items: cart.bought_items
+                            }
+                        })
+                    });
+
+
+                } else {
+                    console.log("no cart");
+
+                    return res.json({
+                        error: true,
+                        message: "cart == null!"
+                    });
+
+                }
+            });
+
+        });
+});
+
+//GET increment item from cart (auth required)
+router.get('/:project/:servername/incrementitem/:id', auth.required, (req, res, next) => {
+    const { payload: { id } } = req;
+
+    if (!utils.project_server_check(req.params.project, req.params.servername))
+        return res.json({
+            error: true,
+            message: "server or project does not exists!"
+        });
+
+    Users.findById(id)
+        .then((user) => {
+            if (!user) {
+                return res.sendStatus(400);
+            }
+
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+                if (err) {
+
+                    console.log(err);
+                    return res.json({
+                        error: true,
+                        message: "error in findCart"
+                    });
+
+                }
+                if (cart) {
+
+                    let newItems = cart.items;
+                    newItems.forEach(e => {
+                        if (e.id == req.params.id)
+                            e.count++;
+                    });
+
+                    cart.updateOne({ items: newItems }).then(() => {
+                        return res.json({
+                            error: false,
+                            message: "OK",
+                            cart: {
+                                items: newItems,
+                                bought_items: cart.bought_items
+                            }
+                        })
+                    });
+
+
+                } else {
+                    console.log("no cart");
+
+                    return res.json({
+                        error: true,
+                        message: "cart == null!"
+                    });
+
+                }
+            });
+
+        });
+});
+
 //GET buy all items from cart (auth required)
 router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
+    console.log("ПРОВЕРЬ МЕНЯ")
     const { payload: { id } } = req;
 
     if (!utils.project_server_check(req.params.project, req.params.servername))
@@ -377,7 +537,7 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
 
             Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
                 if (err) {
-                    console.log("ban nahooi");
+                    console.log(err);
                     return res.json({
                         error: true,
                         message: "error in findCart"
@@ -385,62 +545,113 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
                 }
                 if (cart) {
 
-                    if (cache[req.params.project][req.params.servername]) {
-
-                        var totalPrice = 0;
-                        var updatedCartItems = cart.items;
-                        for (item in cart.items) {
-                            if (cache[req.params.project][req.params.servername].items[item])
-                                totalPrice += cache[req.params.project][req.params.servername].items[item].price * updatedCartItems[item].count;
-                            else
-                                delete updatedCartItems[item];
+                    Money.findOne({ linked_user_id: user._id, project: req.params.project }, function(err, money) {
+                        if (err) {
+                            console.log(err);
+                            return res.json({
+                                error: true,
+                                message: "error in findMoney"
+                            })
                         }
+                        if (money) {
+                            if (cache[req.params.project][req.params.servername]) {
 
-                        cart.updateOne({ items: updatedCartItems }).then(() => {
-                            if (user.money < totalPrice) {
-                                return res.json({
-                                    error: true,
-                                    message: "not enough currency!",
-                                    moneyneed: totalPrice - user.money
+                                var temp = new Array();
+                                cart.items.forEach(e => {
+                                    temp.push(e);
                                 });
-                            } else {
-                                var newBoughtItems = {};
-                                var newItems = {};
 
-                                if (cart.bought_items)
-                                    newBoughtItems = cart.bought_items;
-                                if (cart.items)
-                                    newItems = cart.items;
+                                var totalPrice = 0;
+                                var updatedCartItems = cart.items;
 
-                                for (item in newItems) {
-                                    if (newBoughtItems[item])
-                                        newBoughtItems[item].count += newItems[item].count;
-                                    else
-                                        newBoughtItems[item] = newItems[item];
+                                updatedCartItems.forEach(function(e, index, object) {
+                                    if (cache[req.params.project][req.params.servername].items[e.id]) {
+                                        totalPrice += (cache[req.params.project][req.params.servername].items[e.id].price -
+                                                (cache[req.params.project][req.params.servername].items[e.id].price / 100 * cache[req.params.project][req.params.servername].items[e.id].discount)) *
+                                            e.count;
+                                    } else {
+                                        console.log("aga");
+                                        object.splice(index, 1);
+                                    }
+                                });
+
+                                if (money.realmoney < totalPrice) {
+                                    console.log(temp);
+                                    return res.json({
+                                        error: true,
+                                        cart: {
+                                            items: temp,
+                                            bought_items: cart.bought_items
+                                        },
+                                        message: "not enough currency!",
+                                        moneyneed: totalPrice - money.realmoney
+                                    });
                                 }
-                                newItems = {};
-                                console.log(newBoughtItems);
-                                user.updateOne({ money: user.money - totalPrice }).then(() => {
-                                    cart.updateOne({ items: newItems }).then(() => {
-                                        cart.updateOne({ bought_items: newBoughtItems }).then(() => {
-                                            return res.json({
-                                                error: false,
-                                                message: "OK"
-                                            });
-                                        });
 
+                                cart.updateOne({ items: updatedCartItems }).then(() => {
+
+                                    console.log(`
+                                    1
+                                    2
+                                    3
+
+
+                                    .
+                                    `);
+
+                                    var newBoughtItems = [];
+                                    if (cart.bought_items)
+                                        newBoughtItems = cart.bought_items;
+
+                                    updatedCartItems.forEach(e => {
+                                        let flag = false;
+                                        newBoughtItems.forEach(e1 => {
+                                            if (e1.id == e.id) {
+                                                flag = true;
+                                                e1.count += Number(e.count);
+
+                                            }
+                                        });
+                                        if (!flag) {
+                                            console.log(e);
+                                            newBoughtItems.push(e);
+                                        }
+                                    })
+
+                                    money.updateOne({ realmoney: Number(money.realmoney) - Number(totalPrice) }).then(() => {
+                                        cart.updateOne({ items: [] }).then(() => {
+                                            cart.updateOne({ bought_items: newBoughtItems }).then(() => {
+                                                return res.json({
+                                                    error: false,
+                                                    cart: {
+                                                        items: [],
+                                                        bought_items: cart.bought_items
+                                                    },
+                                                    message: "OK"
+                                                });
+                                            });
+
+                                        });
                                     });
                                 });
+
+
+                            } else {
+                                return res.json({
+                                    error: true,
+                                    message: "error in serverOfferCache"
+                                });
                             }
-                        });
+                        }
+                        if (!money) {
+                            return res.json({
+                                error: true,
+                                message: "money == null!1"
+                            })
+                        }
+                    });
 
 
-                    } else {
-                        return res.json({
-                            error: true,
-                            message: "error in serverOfferCache"
-                        });
-                    }
 
 
                 } else {

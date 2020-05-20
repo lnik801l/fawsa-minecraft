@@ -11,6 +11,10 @@ const MoneyShema = new Schema({
         default: 0
     },
     project: String,
+    realmoney: {
+        type: Long,
+        default: 0
+    },
     money: {
         type: Long,
         default: 0
