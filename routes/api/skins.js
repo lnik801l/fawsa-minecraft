@@ -55,7 +55,7 @@ function getPart(src, x, y, width, height, scale) {
 }
 
 //POST upload skin route (auth required)
-router.post('/:project/uploadskin', auth.optional, (req, res, next) => {
+router.post('/:project/uploadskin', auth.required, (req, res, next) => {
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
@@ -189,7 +189,7 @@ router.get('/:project/skin/:uuid.png', auth.optional, (req, res, next) => {
     });
 });
 
-router.get('/:project/deleteskin', auth.optional, (req, res, next) => {
+router.get('/:project/deleteskin', auth.required, (req, res, next) => {
 
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
@@ -240,7 +240,7 @@ router.get('/:project/deleteskin', auth.optional, (req, res, next) => {
 
 });
 //POST upload cloak route (auth required)
-router.post('/:project/uploadcloak', auth.optional, (req, res, next) => {
+router.post('/:project/uploadcloak', auth.required, (req, res, next) => {
 
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
@@ -340,7 +340,7 @@ router.post('/:project/uploadcloak', auth.optional, (req, res, next) => {
 
 });
 
-router.get('/:project/deletecloak', auth.optional, (req, res, next) => {
+router.get('/:project/deletecloak', auth.required, (req, res, next) => {
 
     if (!utils.project_server_check(req.params.project, null))
         return res.json({

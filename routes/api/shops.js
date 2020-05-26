@@ -107,6 +107,13 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
                 return res.sendStatus(400);
             }
 
+            if (!cache[req.params.project][req.params.servername].items || cache[req.params.project][req.params.servername].error) {
+                return res.json({
+                    error: true,
+                    message: "error in find cache!"
+                })
+            }
+
             Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
                 if (err) {
 
@@ -699,7 +706,7 @@ router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res
 
                     if (items) {
                         var newBoughtItems = {};
-                        var newMoney = user.money;
+                        var newMoney = user.realmoney;
                         if (cart.items)
                             newBoughtItems = cart.bought_items;
                         for (i in items) {
@@ -710,7 +717,7 @@ router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res
                             }
                         }
                         cart.updateOne({ bought_items: newBoughtItems }).then(() => {
-                            user.updateOne({ money: newMoney }).then(() => {
+                            user.updateOne({ realmoney: newMoney }).then(() => {
                                 return res.json({
                                     error: false,
                                     message: "OK",
@@ -805,9 +812,8 @@ router.post('/:project/addgroup', auth.required, (req, res, next) => {
 });
 
 //POST delete donate group for specific project (admin required)
-router.post('/:project/deletegroup', auth.required, (req, res, next) => {
+router.get('/:project/deletegroup/:id', auth.required, (req, res, next) => {
     const { payload: { id } } = req;
-    const json = req.body;
     var boolean = false;
 
     for (project in cfg.projects)
@@ -819,11 +825,6 @@ router.post('/:project/deletegroup', auth.required, (req, res, next) => {
             error: true,
             message: "server or project does not exists!"
         });
-    if (!json.name || !json.lp_name || !json.expires_in_days || !json.icon_url || !json.cost)
-        return res.json({
-            error: true,
-            message: "malformed query"
-        });
 
     Users.findById(id)
         .then((user) => {
@@ -831,13 +832,13 @@ router.post('/:project/deletegroup', auth.required, (req, res, next) => {
             if (!user) {
                 return res.sendStatus(400);
             }
-            if (!user.is_admin)
+            if (!user.is_gadmin)
                 return res.json({
                     error: true,
                     message: "you are not admin!"
                 });
             if (user.is_gadmin) {
-                Group.findOne({ project: req.params.project, name: json.name, cost: json.cost, expires_in_days: json.expires_in_days }, function(err, group) {
+                Group.findById(req.params.id, function(err, group) {
                     if (err)
                         return res.json({
                             error: true,
@@ -939,7 +940,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                     message: "invalid id"
                                 })
 
-                            if (money.money >= group.cost) {
+                            if (money.realmoney >= group.cost) {
 
                                 MongoClient.connect(cfg.mongodb_url, function(err, db) {
                                     if (err) throw err;
@@ -958,7 +959,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                 if (err)
                                                     throw err;
                                                 if (!lp_user) {
-                                                    money.updateOne({ money: money.money - group.cost }).then(() => {
+                                                    money.updateOne({ realmoney: Number(money.realmoney) - Number(group.cost) }).then(() => {
                                                         db_project.collection("luckperms_users").insertOne({
                                                             _id: uuid._id,
                                                             name: user.username,
@@ -995,7 +996,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                     });
                                                 }
                                                 if (lp_user) {
-                                                    money.updateOne({ money: money.money - group.cost }).then(() => {
+                                                    money.updateOne({ realmoney: Number(money.realmoney) - Number(group.cost) }).then(() => {
                                                         let testvar = lp_user.permissions;
                                                         let flag = false;
                                                         for (i in testvar) {

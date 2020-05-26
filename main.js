@@ -8,6 +8,7 @@ const errorHandler = require('errorhandler');
 
 const cfg = require('./config/constants');
 
+
 //Configure mongoose's promise to global promise
 mongoose.promise = global.Promise;
 
@@ -20,54 +21,65 @@ const app = express();
 //Configure our app
 app.use(cors());
 app.use(require('morgan')('dev'));
-app.use(bodyParser.urlencoded({limit: '4mb', extended: true}));
-app.use(bodyParser.json({limit: '4mb'}));
+app.use(bodyParser.urlencoded({ limit: '4mb', extended: true }));
+app.use(bodyParser.json({ limit: '4mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({ secret: 'passport-tutorial', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
 
-if(!isProduction) {
-  app.use(errorHandler());
+if (!isProduction) {
+    app.use(errorHandler());
 }
 
+
+
 //Configure Mongoose
-mongoose.connect('mongodb://localhost/' + cfg.db_main, {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect('mongodb://localhost/' + cfg.db_main, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.set('debug', true);
 
 //Models & routes
 
 //adding ALL models recursively (ибо заебало вручную дописывать модели)
 require("fs").readdirSync(require("path").join(__dirname, "models")).forEach(function(file) {
-  if (file.endsWith(".js"))
-    require("./models/" + file);
+    if (file.endsWith(".js"))
+        require("./models/" + file);
 });
 
 require('./config/passport');
 app.use(require('./routes'));
+const discord = require('./discord');
 
 //Error handlers & middlewares
-if(!isProduction) {
-  app.use((err, req, res) => {
-    res.status(err.status || 500);
+if (!isProduction) {
+    app.use((err, req, res) => {
+        res.status(err.status || 500);
 
-    res.json({
-      errors: {
-        message: err.message,
-        error: err,
-      },
+        res.json({
+            errors: {
+                message: err.message,
+                error: err,
+            },
+        });
     });
-  });
 }
 
 app.use((err, req, res) => {
-  res.status(err.status || 500);
+    res.status(err.status || 500);
 
-  res.json({
-    errors: {
-      message: err.message,
-      error: {},
-    },
-  });
+    res.json({
+        errors: {
+            message: err.message,
+            error: {},
+        },
+    });
 });
+
+//connect to discord bots to send notifies... and so one
+discord.init(cfg.discord_bot_token, "#main");
+for (const project in cfg.projects) {
+    //if (cfg.projects[project].settings.mail)
+    //discord.init(cfg.projects[project].settings.mail.discord_bot_token, project);
+}
+
 
 const port = 8000;
 

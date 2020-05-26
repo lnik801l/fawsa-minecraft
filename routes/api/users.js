@@ -6,10 +6,43 @@ const auth = require('../auth');
 const Users = mongoose.model('Users');
 const EmailTokens = mongoose.model('EmailTokens');
 const Money = mongoose.model('Money');
-const cryptoRandomString = require('crypto-random-string');
 
 const mailer = require('../../config/mailer');
 const cfg = require('../../config/constants');
+const utils = require('../../utils');
+
+function clear_NA_Users() {
+    Users.find(function(err, docs) {
+        if (err)
+            return console.log(err);
+        if (!err) {
+            docs.forEach(u => {
+                if (Math.abs((new Date(u.reg_date).getTime() / 1000 / 60 / 60) - new Date() / 1000 / 60 / 60) > 5 && u.activated == 0)
+                    u.remove().then(() => {});
+            });
+        }
+    });
+}
+
+function clear_expired_tokens() {
+    EmailTokens.find(function(err, docs) {
+        if (err)
+            return console.log(err);
+        if (!err) {
+            docs.forEach(t => {
+                if (Math.abs((new Date(t.time).getTime() / 1000 / 60 / 60) - new Date() / 1000 / 60 / 60) > 5)
+                    t.remove().then(() => {});
+            });
+        }
+    });
+}
+clear_expired_tokens();
+clear_NA_Users();
+setInterval(() => {
+    console.log("remove expired tokens and non-activated users");
+    clear_expired_tokens();
+    clear_NA_Users();
+}, 1000 * 60 * 5);
 
 //POST new user route (optional, everyone has access)
 router.post('/register', auth.optional, (req, res, next) => {
@@ -19,6 +52,18 @@ router.post('/register', auth.optional, (req, res, next) => {
         return res.status(422).json({
             error: true,
             message: "username is required"
+        });
+    }
+    if (!reqUser.project) {
+        return res.status(422).json({
+            error: true,
+            message: "project is required"
+        });
+    }
+    if (!utils.project_server_check(reqUser.project, null)) {
+        return res.status(422).json({
+            error: true,
+            message: "project does not exists!"
         });
     }
     if (!reqUser.email) {
@@ -34,9 +79,9 @@ router.post('/register', auth.optional, (req, res, next) => {
         });
     }
 
-    Users.findOne({ username: reqUser.username }, function(err, user) {
+    Users.findOne({ username: reqUser.username, email: reqUser.email }, function(err, user) {
         if (err) {
-            console.log("ban nahooi");
+            console.log(err);
             return res.json({
                 error: true,
                 message: "error in check userExists"
@@ -45,11 +90,9 @@ router.post('/register', auth.optional, (req, res, next) => {
         if (user) {
             return res.json({
                 error: true,
-                message: "user already exists!"
+                message: "user already exists or user with that email is already exists!"
             });
         } else {
-            console.log("no user");
-
             const finalUser = new Users(reqUser);
             finalUser.setPassword(reqUser.password);
             finalUser.money = 0;
@@ -59,14 +102,13 @@ router.post('/register', auth.optional, (req, res, next) => {
                 finalUser.refer = reqUser.refer;
             return finalUser.save()
                 .then(() => {
-                    emailToken = new EmailTokens({ linked_user_id: finalUser._id, type: "activate" });
+                    emailToken = new EmailTokens({ linked_user_id: finalUser._id, type: "activate", time: new Date() });
                     emailToken.token = emailToken.genToken();
                     emailToken.save().then(() => {
 
-                        mailer.sendMail(reqUser.email, emailToken.token);
+                        mailer.sendMail(reqUser.email, emailToken.token, reqUser.project, "reg");
                         res.json({
                             error: false,
-                            user: finalUser.toAuthJSONreg(),
                             message: "do not forget to verify your account! email already sent to you..."
                         });
 
@@ -171,16 +213,23 @@ router.post('/login', auth.optional, (req, res, next) => {
 });
 
 //GET login through vk account
+/*
 router.get('/vklogin', auth.optional, (req, res, next) => {
     res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.vk_app_id + '&redirect_uri=' + cfg.vk_login_redirect_uri + '&display=popup&response_type=code');
-});
+});*/
 
 //GET vk callback (used after user logged in vk profile using /vklogin)
-router.get('/vklogin/callback', auth.optional, (req, res, next) => {
+router.get('/vklogin', auth.optional, (req, res, next) => {
+
+    if (!req.query.code || !req.query.project)
+        return res.json({
+            error: true,
+            message: "no code or project"
+        });
 
     request({
         method: 'GET',
-        url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.vk_login_redirect_uri + '&code=' + req.query.code,
+        url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.projects[req.query.project].settings.vk_login_redirect_uri + '&code=' + req.query.code,
     }, function(error, response, body) {
         if (error) {
             console.log(error);
@@ -218,17 +267,15 @@ router.get('/vklogin/callback', auth.optional, (req, res, next) => {
                     }
                 }
             });
+        } else {
+            console.log(response.body);
         }
     });
 });
 
-//GET login through discord account
-router.get('/dclogin', auth.optional, (req, res, next) => {
-    res.redirect('https://discordapp.com/api/oauth2/authorize?client_id=' + cfg.dc_client_id + '&redirect_uri=' + cfg.dc_login_redirect_uri + '&response_type=code&scope=identify');
-});
 
 //GET dc callback (used after user logged in dc profile using /linkdc)
-router.get('/dclogin/callback', auth.optional, (req, res, next) => {
+router.get('/dclogin', auth.optional, (req, res, next) => {
 
     request({
         uri: 'https://discordapp.com/api/v6/oauth2/token',
@@ -237,7 +284,7 @@ router.get('/dclogin/callback', auth.optional, (req, res, next) => {
             client_secret: cfg.dc_client_secret,
             grant_type: 'authorization_code',
             code: req.query.code,
-            redirect_uri: cfg.dc_login_redirect_uri,
+            redirect_uri: cfg.projects[req.query.project].settings.dc_login_redirect_uri,
             scope: 'identify'
         },
         method: 'POST',
@@ -370,7 +417,7 @@ router.get('/activate/:token', auth.optional, (req, res, next) => {
 //POST request password change
 router.post('/changepassword/request', auth.optional, (req, res, next) => {
     var json = req.body;
-    if (!json.email || !json.captcha)
+    if (!json.email || !json.captcha || !json.project)
         return res.json({
             error: true,
             message: "corrupted request!"
@@ -413,11 +460,11 @@ router.post('/changepassword/request', auth.optional, (req, res, next) => {
                             message: "error in check userExists"
                         });
                     if (user) {
-                        emailToken = new EmailTokens({ linked_user_id: user._id, type: "passwdchange" });
+                        emailToken = new EmailTokens({ linked_user_id: user._id, type: "passwdchange", time: new Date() });
                         emailToken.token = emailToken.genToken();
                         emailToken.save().then(() => {
 
-                            mailer.sendMail(user.email, emailToken.token);
+                            mailer.sendMail(user, emailToken.token, json.project, "passwdchange", user.notify_method);
                             res.json({
                                 error: false,
                                 message: "email successfully sent!"
@@ -476,13 +523,18 @@ router.post('/changepassword/accept', auth.optional, (req, res, next) => {
                     });
                 }
             });
+        if (!token)
+            return res.json({
+                error: true,
+                message: "invalid token!"
+            });
     })
 });
 
 //POST request email change
-router.post('/changemail/request', auth.optional, (req, res, next) => {
+router.post('/changemail/request/:email', auth.optional, (req, res, next) => {
     var json = req.body;
-    if (!json.email || !json.captcha)
+    if (!json.captcha || !json.project)
         return res.json({
             error: true,
             message: "corrupted request!"
@@ -518,11 +570,11 @@ router.post('/changemail/request', auth.optional, (req, res, next) => {
                         message: "error in check userExists"
                     });
                 if (user) {
-                    emailToken = new EmailTokens({ linked_user_id: user._id, type: "mailchange" });
+                    emailToken = new EmailTokens({ linked_user_id: user._id, type: "mailchange", time: new Date() });
                     emailToken.token = emailToken.genToken();
                     emailToken.save().then(() => {
 
-                        mailer.sendMail(user.email, emailToken.token);
+                        mailer.sendMail(user, emailToken.token, json.project, "mailchange", user.notify_method);
                         res.json({
                             error: false,
                             message: "email successfully sent!"
@@ -588,19 +640,135 @@ router.post('/changemail/accept', auth.optional, (req, res, next) => {
     })
 });
 
-//GET link vk profile to current logged account
-router.get('/linkvk', auth.required, (req, res, next) => {
-    res.redirect('https://oauth.vk.com/authorize?client_id=' + cfg.vk_app_id + '&redirect_uri=' + cfg.vk_redirect_uri + '&display=popup&response_type=code');
+//POST request notify method change
+router.post('/changenotify/request/:email', auth.optional, (req, res, next) => {
+    var json = req.body;
+    if (!json.captcha || !json.project)
+        return res.json({
+            error: true,
+            message: "corrupted request!"
+        });
+
+    request({
+        uri: 'https://www.google.com/recaptcha/api/siteverify',
+        form: {
+            secret: cfg.recaptcha_secret,
+            response: json.captcha
+        },
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }, function(err, response) {
+        let enc_res = JSON.parse(response.body);
+        if (err || !enc_res)
+            return res.json({
+                error: true,
+                message: "error in captcha check"
+            })
+        if (enc_res.score <= 0.5)
+            return res.json({
+                error: true,
+                message: 'your actions are like a bot. refresh page and try again'
+            })
+        if (enc_res) {
+            Users.findOne({ email: req.params.email }, function(error, user) {
+                if (error)
+                    return res.json({
+                        error: true,
+                        message: "error in check userExists"
+                    });
+                if (user) {
+                    emailToken = new EmailTokens({ linked_user_id: user._id, type: "notifychange", time: new Date() });
+                    emailToken.token = emailToken.genToken();
+                    emailToken.save().then(() => {
+
+                        mailer.sendMail(user, emailToken.token, json.project, "notifychange", user.notify_method);
+                        res.json({
+                            error: false,
+                            message: "email successfully sent!"
+                        });
+
+                    });
+                }
+                if (!user)
+                    return res.json({
+                        error: true,
+                        message: "user with requested email not found"
+                    });
+            });
+        }
+    });
+});
+
+//POST accept notify method change
+router.post('/changenotify/accept', auth.optional, (req, res, next) => {
+    var json = req.body;
+
+    if (!json.token)
+        return res.json({
+            error: true,
+            message: "token is required"
+        });
+    if (!json.notify)
+        return res.json({
+            error: true,
+            message: "notify method is required"
+        });
+
+    EmailTokens.findOne({ token: json.token, type: "notifychange" }, function(error, token) {
+        if (error)
+            return res.json({
+                error: true,
+                message: "error in check tokenExists"
+            });
+        if (token)
+            Users.findOne({ _id: token.linked_user_id }, function(error, user) {
+                if (error)
+                    return res.json({
+                        error: true,
+                        message: "error in check userExists"
+                    });
+                if (user) {
+                    token.delete().then(() => {
+                        let method = 0;
+                        if (json.notify == "email")
+                            method = 0;
+                        if (json.notify == "vk")
+                            method = 1;
+                        if (json.notify == "discord")
+                            method = 2;
+                        user.notify_method = method;
+                        user.save().then(() => {
+                            return res.json({
+                                error: false,
+                                message: "ok"
+                            });
+                        });
+                    });
+                }
+                if (!user)
+                    return res.json({
+                        error: true,
+                        message: "user does not exists!"
+                    });
+            });
+        if (!token)
+            return res.json({
+                error: true,
+                message: "token not found"
+            });
+    })
 });
 
 //GET vk callback (used after user logged in vk profile using /linkvk)
-router.get('/linkvk/callback', auth.required, (req, res, next) => {
+router.get('/linkvk', auth.required, (req, res, next) => {
 
     const { payload: { id } } = req;
 
     request({
         method: 'GET',
-        url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.vk_redirect_uri + '&code=' + req.query.code,
+        url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.projects[req.query.project].settings.vk_link_redirect_uri + '&code=' + req.query.code,
     }, function(error, response, body) {
         if (error) {
             console.log(error);
@@ -613,7 +781,7 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
 
             Users.findOne({ _id: id }, function(err, user) {
                 if (err) {
-                    console.log("ban nahooi");
+                    console.log(err);
                     return res.json({
                         error: true,
                         message: "error in check userExists",
@@ -628,7 +796,7 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
                 var parsed = JSON.parse(body);
                 Users.findOne({ vk_id: parsed.user_id }, function(err, u) {
                     if (err) {
-                        console.log("ban nahooi");
+                        console.log(err);
                         return res.json({
                             error: true,
                             message: "error in check userExists",
@@ -648,6 +816,102 @@ router.get('/linkvk/callback', auth.required, (req, res, next) => {
                             });
                         });
                 });
+            });
+        } else {
+            console.log(response.body);
+            return res.json({
+                error: true,
+                message: "unexpected error occured!"
+            });
+        }
+    });
+});
+
+//GET dc callback (used after user logged in dc profile using /linkdc)
+router.get('/linkdc', auth.required, (req, res, next) => {
+
+    const { payload: { id } } = req;
+
+    request({
+        uri: 'https://discordapp.com/api/v6/oauth2/token',
+        form: {
+            client_id: cfg.dc_client_id,
+            client_secret: cfg.dc_client_secret,
+            grant_type: 'authorization_code',
+            code: req.query.code,
+            redirect_uri: cfg.projects[req.query.project].settings.dc_link_redirect_uri,
+            scope: 'identify'
+        },
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }, function(error, response) {
+        if (error) {
+            console.log(error);
+            return res.json({
+                error: true,
+                error: error
+            });
+        }
+        if (!error) {
+            var answer = JSON.parse(response.body);
+            request({
+                uri: 'https://discordapp.com/api/users/@me',
+                method: 'GET',
+                headers: {
+                    'Authorization': answer.token_type + ' ' + answer.access_token
+                }
+            }, function(error, response) {
+                if (error) {
+                    console.log(error);
+                    return res.json({
+                        error: true,
+                        error: error
+                    });
+                }
+                const parsed = JSON.parse(response.body);
+                console.log(parsed.id);
+                if (!error) {
+                    Users.findById(id, function(err, user) {
+                        if (err) {
+                            res.json({
+                                error: true,
+                                message: "error in check userExists"
+                            });
+                            console.log(err);
+                        }
+                        if (!user) {
+                            return res.json({
+                                error: true,
+                                message: "user not found!"
+                            });
+                        }
+                        if (user) {
+                            Users.findOne({ discord_id: parsed.id }, function(err, u) {
+                                if (err) {
+                                    console.log(err);
+                                    return res.json({
+                                        error: true,
+                                        message: "error in check userExists"
+                                    });
+                                }
+                                if (u)
+                                    return res.json({
+                                        error: true,
+                                        message: "account with that discord user already exists!"
+                                    });
+                                if (!u)
+                                    user.updateOne({ discord_id: parsed.id }).then(() => {
+                                        return res.json({
+                                            error: false,
+                                            message: "discord account successfully linked!"
+                                        });
+                                    });
+                            });
+                        }
+                    });
+                }
             });
         }
     });
@@ -763,101 +1027,6 @@ router.get('/:project/getmoney', auth.required, (req, res, next) => {
             }
 
         });
-});
-
-//GET link discord profile to current logged account
-router.get('/linkdc', auth.required, (req, res, next) => {
-    res.redirect('https://discordapp.com/api/oauth2/authorize?client_id=' + cfg.dc_client_id + '&redirect_uri=' + cfg.dc_redirect_uri + '&response_type=code&scope=identify');
-});
-
-//GET dc callback (used after user logged in dc profile using /linkdc)
-router.get('/linkdc/callback', auth.required, (req, res, next) => {
-
-    const { payload: { id } } = req;
-
-    request({
-        uri: 'https://discordapp.com/api/v6/oauth2/token',
-        form: {
-            client_id: cfg.dc_client_id,
-            client_secret: cfg.dc_client_secret,
-            grant_type: 'authorization_code',
-            code: req.query.code,
-            redirect_uri: cfg.dc_redirect_uri,
-            scope: 'identify'
-        },
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-    }, function(error, response) {
-        if (error) {
-            console.log(error);
-            return res.json({
-                error: true,
-                error: error
-            });
-        }
-        if (!error) {
-            var answer = JSON.parse(response.body);
-            request({
-                uri: 'https://discordapp.com/api/users/@me',
-                method: 'GET',
-                headers: {
-                    'Authorization': answer.token_type + ' ' + answer.access_token
-                }
-            }, function(error, response) {
-                if (error) {
-                    console.log(error);
-                    return res.json({
-                        error: true,
-                        error: error
-                    });
-                }
-                const parsed = JSON.parse(response.body);
-                console.log(parsed.id);
-                if (!error) {
-                    Users.findById(id, function(err, user) {
-                        if (err) {
-                            res.json({
-                                error: true,
-                                message: "error in check userExists"
-                            });
-                            console.log(err);
-                        }
-                        if (!user) {
-                            return res.json({
-                                error: true,
-                                message: "user not found!"
-                            });
-                        }
-                        if (user) {
-                            Users.findOne({ discord_id: parsed.id }, function(err, u) {
-                                if (err) {
-                                    console.log(err);
-                                    return res.json({
-                                        error: true,
-                                        message: "error in check userExists"
-                                    });
-                                }
-                                if (u)
-                                    return res.json({
-                                        error: true,
-                                        message: "account with that discord user already exists!"
-                                    });
-                                if (!u)
-                                    user.updateOne({ discord_id: parsed.id }).then(() => {
-                                        return res.json({
-                                            error: false,
-                                            message: "discord account successfully linked!"
-                                        });
-                                    });
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    });
 });
 
 module.exports = router;
