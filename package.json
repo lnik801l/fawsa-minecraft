@@ -20,9 +20,12 @@
     "nbt": "^0.8.1",
     "nodemailer": "^6.4.6",
     "passport": "^0.4.1",
+    "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "request": "^2.88.2",
     "sha1": "^1.1.1",
-    "uuid": "^7.0.3"
+    "uuid": "^7.0.3",
+    "vk-io": "^4.0.0-rc.30",
+    "winston": "^3.3.3"
   }
 }

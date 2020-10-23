@@ -9,29 +9,29 @@ const Money = mongoose.model('Money');
 
 const mailer = require('../../config/mailer');
 const cfg = require('../../config/constants');
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 
 function clear_NA_Users() {
-    Users.find(function(err, docs) {
+    Users.find(function (err, docs) {
         if (err)
             return console.log(err);
         if (!err) {
             docs.forEach(u => {
                 if (Math.abs((new Date(u.reg_date).getTime() / 1000 / 60 / 60) - new Date() / 1000 / 60 / 60) > 5 && u.activated == 0)
-                    u.remove().then(() => {});
+                    u.remove().then(() => { });
             });
         }
     });
 }
 
 function clear_expired_tokens() {
-    EmailTokens.find(function(err, docs) {
+    EmailTokens.find(function (err, docs) {
         if (err)
             return console.log(err);
         if (!err) {
             docs.forEach(t => {
                 if (Math.abs((new Date(t.time).getTime() / 1000 / 60 / 60) - new Date() / 1000 / 60 / 60) > 5)
-                    t.remove().then(() => {});
+                    t.remove().then(() => { });
             });
         }
     });
@@ -46,6 +46,12 @@ setInterval(() => {
 
 //POST new user route (optional, everyone has access)
 router.post('/register', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const reqUser = req.body;
 
     if (!reqUser.username) {
@@ -79,7 +85,7 @@ router.post('/register', auth.optional, (req, res, next) => {
         });
     }
 
-    Users.findOne({ username: reqUser.username, email: reqUser.email }, function(err, user) {
+    Users.findOne({ username: reqUser.username, email: reqUser.email }, function (err, user) {
         if (err) {
             console.log(err);
             return res.json({
@@ -122,6 +128,12 @@ router.post('/register', auth.optional, (req, res, next) => {
 
 //POST login route (optional, everyone has access)
 router.post('/login', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const user = req.body;
 
 
@@ -157,7 +169,7 @@ router.post('/login', auth.optional, (req, res, next) => {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
-        }, function(err, response) {
+        }, function (err, response) {
             if (err)
                 return res.json({
                     error: true,
@@ -221,6 +233,12 @@ router.get('/vklogin', auth.optional, (req, res, next) => {
 //GET vk callback (used after user logged in vk profile using /vklogin)
 router.get('/vklogin', auth.optional, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!req.query.code || !req.query.project)
         return res.json({
             error: true,
@@ -230,7 +248,7 @@ router.get('/vklogin', auth.optional, (req, res, next) => {
     request({
         method: 'GET',
         url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.projects[req.query.project].settings.vk_login_redirect_uri + '&code=' + req.query.code,
-    }, function(error, response, body) {
+    }, function (error, response, body) {
         if (error) {
             console.log(error);
             return res.json({
@@ -242,7 +260,7 @@ router.get('/vklogin', auth.optional, (req, res, next) => {
 
             var parsed = JSON.parse(body);
 
-            Users.findOne({ vk_id: parsed.user_id }, function(err, user) {
+            Users.findOne({ vk_id: parsed.user_id }, function (err, user) {
                 if (err) {
                     console.log("ban nahooi");
                     return res.json({
@@ -273,9 +291,14 @@ router.get('/vklogin', auth.optional, (req, res, next) => {
     });
 });
 
-
 //GET dc callback (used after user logged in dc profile using /linkdc)
 router.get('/dclogin', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
 
     request({
         uri: 'https://discordapp.com/api/v6/oauth2/token',
@@ -291,7 +314,7 @@ router.get('/dclogin', auth.optional, (req, res, next) => {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(error, response) {
+    }, function (error, response) {
         if (error) {
             console.log(error);
             return res.json({
@@ -307,7 +330,7 @@ router.get('/dclogin', auth.optional, (req, res, next) => {
                 headers: {
                     'Authorization': answer.token_type + ' ' + answer.access_token
                 }
-            }, function(error, response) {
+            }, function (error, response) {
                 if (error) {
                     console.log(error);
                     return res.json({
@@ -317,7 +340,7 @@ router.get('/dclogin', auth.optional, (req, res, next) => {
                 }
                 const parsed = JSON.parse(response.body);
 
-                Users.findOne({ discord_id: parsed.id }, function(err, user) {
+                Users.findOne({ discord_id: parsed.id }, function (err, user) {
                     if (err) {
                         console.log(err);
                         return res.json({
@@ -348,7 +371,13 @@ router.get('/dclogin', auth.optional, (req, res, next) => {
 });
 
 //GET current route (required, only authenticated users have access)
-router.get('/current', auth.required, (req, res, next) => {
+router.get('/current', passport.authenticate('jwt', { session: false }), (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     return Users.findById(id)
@@ -368,7 +397,13 @@ router.get('/current', auth.required, (req, res, next) => {
 //GET activate user account
 router.get('/activate/:token', auth.optional, (req, res, next) => {
 
-    EmailTokens.findOne({ token: req.params.token, type: "activate" }, function(err, token) {
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
+    EmailTokens.findOne({ token: req.params.token, type: "activate" }, function (err, token) {
         if (err) {
             console.log("ban nahooi");
             return res.json({
@@ -377,7 +412,7 @@ router.get('/activate/:token', auth.optional, (req, res, next) => {
             });
         }
         if (token) {
-            Users.findOne({ _id: token.linked_user_id }, function(err, user) {
+            Users.findOne({ _id: token.linked_user_id }, function (err, user) {
                 if (err) {
                     console.log("ban nahooi");
                     return res.json({
@@ -416,6 +451,12 @@ router.get('/activate/:token', auth.optional, (req, res, next) => {
 
 //POST request password change
 router.post('/changepassword/request', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
     if (!json.email || !json.captcha || !json.project)
         return res.json({
@@ -433,7 +474,7 @@ router.post('/changepassword/request', auth.optional, (req, res, next) => {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(err, response) {
+    }, function (err, response) {
         let enc_res = JSON.parse(response.body);
         if (err || !enc_res)
             return res.json({
@@ -453,7 +494,7 @@ router.post('/changepassword/request', auth.optional, (req, res, next) => {
                     message: 'your actions are like a bot. refresh page and try again'
                 })
             if (enc_res.success) {
-                Users.findOne({ email: json.email }, function(error, user) {
+                Users.findOne({ email: json.email }, function (error, user) {
                     if (error)
                         return res.json({
                             error: true,
@@ -485,6 +526,12 @@ router.post('/changepassword/request', auth.optional, (req, res, next) => {
 
 //POST accept password change
 router.post('/changepassword/accept', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
 
     if (!json.token)
@@ -498,14 +545,14 @@ router.post('/changepassword/accept', auth.optional, (req, res, next) => {
             message: "password is required"
         });
 
-    EmailTokens.findOne({ token: json.token, type: "passwdchange" }, function(error, token) {
+    EmailTokens.findOne({ token: json.token, type: "passwdchange" }, function (error, token) {
         if (error)
             return res.json({
                 error: true,
                 message: "error in check tokenExists"
             });
         if (token)
-            Users.findOne({ _id: token.linked_user_id }, function(error, user) {
+            Users.findOne({ _id: token.linked_user_id }, function (error, user) {
                 if (error)
                     return res.json({
                         error: true,
@@ -533,6 +580,12 @@ router.post('/changepassword/accept', auth.optional, (req, res, next) => {
 
 //POST request email change
 router.post('/changemail/request/:email', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
     if (!json.captcha || !json.project)
         return res.json({
@@ -550,7 +603,7 @@ router.post('/changemail/request/:email', auth.optional, (req, res, next) => {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(err, response) {
+    }, function (err, response) {
         let enc_res = JSON.parse(response.body);
         if (err || !enc_res)
             return res.json({
@@ -563,7 +616,7 @@ router.post('/changemail/request/:email', auth.optional, (req, res, next) => {
                 message: 'your actions are like a bot. refresh page and try again'
             })
         if (enc_res) {
-            Users.findOne({ email: req.params.email }, function(error, user) {
+            Users.findOne({ email: req.params.email }, function (error, user) {
                 if (error)
                     return res.json({
                         error: true,
@@ -594,6 +647,12 @@ router.post('/changemail/request/:email', auth.optional, (req, res, next) => {
 
 //POST accept email change
 router.post('/changemail/accept', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
 
     if (!json.token)
@@ -607,14 +666,14 @@ router.post('/changemail/accept', auth.optional, (req, res, next) => {
             message: "email is required"
         });
 
-    EmailTokens.findOne({ token: json.token, type: "mailchange" }, function(error, token) {
+    EmailTokens.findOne({ token: json.token, type: "mailchange" }, function (error, token) {
         if (error)
             return res.json({
                 error: true,
                 message: "error in check tokenExists"
             });
         if (token)
-            Users.findOne({ _id: token.linked_user_id }, function(error, user) {
+            Users.findOne({ _id: token.linked_user_id }, function (error, user) {
                 if (error)
                     return res.json({
                         error: true,
@@ -642,6 +701,12 @@ router.post('/changemail/accept', auth.optional, (req, res, next) => {
 
 //POST request notify method change
 router.post('/changenotify/request/:email', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
     if (!json.captcha || !json.project)
         return res.json({
@@ -659,7 +724,7 @@ router.post('/changenotify/request/:email', auth.optional, (req, res, next) => {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(err, response) {
+    }, function (err, response) {
         let enc_res = JSON.parse(response.body);
         if (err || !enc_res)
             return res.json({
@@ -672,7 +737,7 @@ router.post('/changenotify/request/:email', auth.optional, (req, res, next) => {
                 message: 'your actions are like a bot. refresh page and try again'
             })
         if (enc_res) {
-            Users.findOne({ email: req.params.email }, function(error, user) {
+            Users.findOne({ email: req.params.email }, function (error, user) {
                 if (error)
                     return res.json({
                         error: true,
@@ -703,6 +768,12 @@ router.post('/changenotify/request/:email', auth.optional, (req, res, next) => {
 
 //POST accept notify method change
 router.post('/changenotify/accept', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var json = req.body;
 
     if (!json.token)
@@ -716,14 +787,14 @@ router.post('/changenotify/accept', auth.optional, (req, res, next) => {
             message: "notify method is required"
         });
 
-    EmailTokens.findOne({ token: json.token, type: "notifychange" }, function(error, token) {
+    EmailTokens.findOne({ token: json.token, type: "notifychange" }, function (error, token) {
         if (error)
             return res.json({
                 error: true,
                 message: "error in check tokenExists"
             });
         if (token)
-            Users.findOne({ _id: token.linked_user_id }, function(error, user) {
+            Users.findOne({ _id: token.linked_user_id }, function (error, user) {
                 if (error)
                     return res.json({
                         error: true,
@@ -764,12 +835,18 @@ router.post('/changenotify/accept', auth.optional, (req, res, next) => {
 //GET vk callback (used after user logged in vk profile using /linkvk)
 router.get('/linkvk', auth.required, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     const { payload: { id } } = req;
 
     request({
         method: 'GET',
         url: 'https://oauth.vk.com/access_token?client_id=' + cfg.vk_app_id + '&client_secret=' + cfg.vk_client_secret + '&redirect_uri=' + cfg.projects[req.query.project].settings.vk_link_redirect_uri + '&code=' + req.query.code,
-    }, function(error, response, body) {
+    }, function (error, response, body) {
         if (error) {
             console.log(error);
             return res.json({
@@ -779,7 +856,7 @@ router.get('/linkvk', auth.required, (req, res, next) => {
         }
         if (!error && response.statusCode == 200) {
 
-            Users.findOne({ _id: id }, function(err, user) {
+            Users.findOne({ _id: id }, function (err, user) {
                 if (err) {
                     console.log(err);
                     return res.json({
@@ -794,7 +871,7 @@ router.get('/linkvk', auth.required, (req, res, next) => {
                         message: "user not found!"
                     })
                 var parsed = JSON.parse(body);
-                Users.findOne({ vk_id: parsed.user_id }, function(err, u) {
+                Users.findOne({ vk_id: parsed.user_id }, function (err, u) {
                     if (err) {
                         console.log(err);
                         return res.json({
@@ -830,6 +907,12 @@ router.get('/linkvk', auth.required, (req, res, next) => {
 //GET dc callback (used after user logged in dc profile using /linkdc)
 router.get('/linkdc', auth.required, (req, res, next) => {
 
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     request({
@@ -846,7 +929,7 @@ router.get('/linkdc', auth.required, (req, res, next) => {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(error, response) {
+    }, function (error, response) {
         if (error) {
             console.log(error);
             return res.json({
@@ -862,7 +945,7 @@ router.get('/linkdc', auth.required, (req, res, next) => {
                 headers: {
                     'Authorization': answer.token_type + ' ' + answer.access_token
                 }
-            }, function(error, response) {
+            }, function (error, response) {
                 if (error) {
                     console.log(error);
                     return res.json({
@@ -873,7 +956,7 @@ router.get('/linkdc', auth.required, (req, res, next) => {
                 const parsed = JSON.parse(response.body);
                 console.log(parsed.id);
                 if (!error) {
-                    Users.findById(id, function(err, user) {
+                    Users.findById(id, function (err, user) {
                         if (err) {
                             res.json({
                                 error: true,
@@ -888,7 +971,7 @@ router.get('/linkdc', auth.required, (req, res, next) => {
                             });
                         }
                         if (user) {
-                            Users.findOne({ discord_id: parsed.id }, function(err, u) {
+                            Users.findOne({ discord_id: parsed.id }, function (err, u) {
                                 if (err) {
                                     console.log(err);
                                     return res.json({
@@ -917,61 +1000,14 @@ router.get('/linkdc', auth.required, (req, res, next) => {
     });
 });
 
-//GET dupe money (auth required)
-router.get('/:project/addmoney', auth.required, (req, res, next) => {
-    var flag = true;
-    for (project in cfg.projects)
-        if (project == req.params.project)
-            flag = false;
-    if (flag)
-        return res.json({
-            error: true,
-            message: "project does not exists!"
-        });
-
-    const { payload: { id } } = req;
-
-    Users.findById(id)
-        .then((user) => {
-            if (!user) {
-                return res.json({
-                    error: true,
-                    message: "error in check userExists"
-                });
-            }
-            if (user) {
-                Money.findOne({ linked_user_id: id, project: req.params.project }, function(err, money) {
-                    if (err)
-                        return res.json({
-                            error: true,
-                            message: "error in check moneyExists"
-                        });
-                    if (!money) {
-                        localMoney = new Money({ linked_user_id: id, project: req.params.project, money: 1000 });
-                        localMoney.save().then(() => {
-                            return res.json({
-                                error: false,
-                                message: "BANNAXYI"
-                            });
-                        });
-                    }
-                    if (money) {
-                        money.updateOne({ $inc: { money: 1000 } }).then(() => {
-                            return res.json({
-                                error: false,
-                                message: "BANNAXYI"
-                            });
-                        });
-                    }
-
-                });
-            }
-
-        });
-});
-
 //GET get balance (auth required)
 router.get('/:project/getmoney', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     var flag = true;
     for (project in cfg.projects)
         if (project == req.params.project)
@@ -993,7 +1029,7 @@ router.get('/:project/getmoney', auth.required, (req, res, next) => {
                 });
             }
             if (user) {
-                Money.findOne({ linked_user_id: id, project: req.params.project }, function(err, money) {
+                Money.findOne({ linked_user_id: id, project: req.params.project }, function (err, money) {
                     if (err)
                         return res.json({
                             error: true,

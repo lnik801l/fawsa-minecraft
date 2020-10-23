@@ -6,7 +6,7 @@ const router = require('express').Router();
 const auth = require('../auth');
 const mongoose = require('mongoose');
 const Users = mongoose.model('Users');
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 
 
 var trades = {};
@@ -41,6 +41,12 @@ var trade = {
 
 //GET get inventory of user (auth required)
 router.get('/:project/:servername/getinventory', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
@@ -54,9 +60,9 @@ router.get('/:project/:servername/getinventory', auth.optional, (req, res, next)
                     return res.sendStatus(400);
                 } else {
                     if (fs.existsSync(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat")) {
-                        fs.readFile(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat", function(err, data) {
+                        fs.readFile(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat", function (err, data) {
                             if (!err) {
-                                nbt.parse(data, function(error, data) {
+                                nbt.parse(data, function (error, data) {
                                     if (error) {
                                         return res.json({
                                             error: true,
@@ -95,6 +101,13 @@ router.get('/:project/:servername/getinventory', auth.optional, (req, res, next)
 
 //POST trade operations (auth required)
 router.post('/:project/:servername/trade', auth.optional, (req, res, next) => {
+
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     /*
      *   allowed operations:
      *   
@@ -119,9 +132,9 @@ router.post('/:project/:servername/trade', auth.optional, (req, res, next) => {
                     return res.sendStatus(400);
                 } else {
                     if (fs.existsSync(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat")) {
-                        fs.readFile(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat", function(err, data) {
+                        fs.readFile(cfg.projects[req.params.project][req.params.servername].serverdir + "/world/playerdata/" + user.uuid + ".dat", function (err, data) {
                             if (!err) {
-                                nbt.parse(data, function(error, data) {
+                                nbt.parse(data, function (error, data) {
                                     if (error) {
                                         res.json({
                                             error: true,

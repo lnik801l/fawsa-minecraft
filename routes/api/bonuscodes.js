@@ -4,24 +4,24 @@ const Users = mongoose.model('Users');
 const Money = mongoose.model('Money');
 
 const cfg = require('../../config/constants');
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 const bonuscodesschema = require('../../per-project-schemas/bonuscodes').schema;
 const bonuscodesusersschema = require('../../per-project-schemas/bonuscodes_usedbyusers').schema;
 const auth = require('../auth');
 
-let delOldCodes = function() {
+let delOldCodes = function () {
     for (project in cfg.projects) {
         const model = cfg.projects[project].settings.database.model('bonuscodes', bonuscodesschema);
         //const model = cfg.projects.galaxy.settings.database.model('bonuscodes', bonuscodesschema);
 
-        model.find(function(err, docs) {
+        model.find(function (err, docs) {
 
             if (err)
                 return console.log(err);
 
             return docs.forEach(element => {
                 if (element.expiry_date < new Date())
-                    element.remove(() => {});
+                    element.remove(() => { });
             });
         });
     }
@@ -32,6 +32,13 @@ setInterval(() => delOldCodes(), 1000 * 60 * 60);
 
 
 router.post('/:project/addcode', auth.required, (req, res, next) => {
+
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const json = req.body;
 
@@ -54,7 +61,7 @@ router.post('/:project/addcode', auth.required, (req, res, next) => {
             if (user.is_gadmin) {
                 const BCModel = cfg.projects[req.params.project]
                     .settings.database.model('bonuscodes', bonuscodesschema);
-                BCModel.findOne({ 'code': json.code }, function(err, bc) {
+                BCModel.findOne({ 'code': json.code }, function (err, bc) {
                     if (err)
                         return res.json({
                             error: true,
@@ -74,7 +81,7 @@ router.post('/:project/addcode', auth.required, (req, res, next) => {
                             uses: json.uses,
                             money: json.money
 
-                        }).save(function(err) {
+                        }).save(function (err) {
                             if (err)
                                 return console.log(err);
                             if (!err)
@@ -93,6 +100,12 @@ router.post('/:project/addcode', auth.required, (req, res, next) => {
 });
 
 router.get('/:project/activatecode/:code', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     Users.findById(id).then((user) => {
@@ -101,7 +114,7 @@ router.get('/:project/activatecode/:code', auth.required, (req, res, next) => {
         if (user) {
             const BCModel = cfg.projects[req.params.project]
                 .settings.database.model('bonuscodes', bonuscodesschema);
-            BCModel.findOne({ code: req.params.code }, function(err, bc) {
+            BCModel.findOne({ code: req.params.code }, function (err, bc) {
                 if (err) {
                     console.log(err);
                     return res.sendStatus(500).json({
@@ -122,7 +135,7 @@ router.get('/:project/activatecode/:code', auth.required, (req, res, next) => {
                         })
                     const bc_ubu = cfg.projects[req.params.project]
                         .settings.database.model('bc_usedbyusers', bonuscodesusersschema);
-                    bc_ubu.findOne({ linked_user_id: user._id }, function(err, bcubu) {
+                    bc_ubu.findOne({ linked_user_id: user._id }, function (err, bcubu) {
                         if (err) {
                             console.log(err);
                             return res.json({
@@ -142,7 +155,7 @@ router.get('/:project/activatecode/:code', auth.required, (req, res, next) => {
                                     Money.findOne({
                                         linked_user_id: user._id,
                                         project: req.params.project
-                                    }, function(err, money) {
+                                    }, function (err, money) {
                                         if (err) {
                                             console.log(err);
                                             return res.sendStatus(500).json({

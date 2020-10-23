@@ -29,23 +29,36 @@ const UsersSchema = new Schema({
     salt: String,
 });
 
-UsersSchema.methods.setPassword = function(password) {
+UsersSchema.methods.setPassword = function (password) {
     this.salt = crypto.randomBytes(16).toString('hex');
     this.hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex');
 };
 
-UsersSchema.methods.validatePassword = function(password) {
+UsersSchema.methods.validatePassword = function (password) {
     const hash = crypto.pbkdf2Sync(password, this.salt, 10000, 512, 'sha512').toString('hex');
     return this.hash === hash;
 };
 
-UsersSchema.methods.generateUUID = function() {
+UsersSchema.methods.generateUUID = function () {
     var uuid = uuidv4();
     console.log(uuid);
     return this.uuid = uuid;
 };
 
-UsersSchema.methods.generateJWT = function() {
+UsersSchema.methods.generateJWT = function () {
+    const today = new Date();
+    const expirationDate = new Date(today);
+    expirationDate.setDate(today.getDate() + 60);
+
+    return jwt.sign({
+        email: this.email,
+        id: this._id,
+        key: this.hash,
+        exp: parseInt(expirationDate.getTime() / 1000, 10),
+    }, 'secret');
+}
+
+UsersSchema.methods.generateJWT_long = function () {
     const today = new Date();
     const expirationDate = new Date(today);
     expirationDate.setDate(today.getDate() + 60);
@@ -57,7 +70,7 @@ UsersSchema.methods.generateJWT = function() {
     }, 'secret');
 }
 
-UsersSchema.methods.toAuthJSON = function() {
+UsersSchema.methods.toAuthJSON = function () {
     return {
         _id: this._id,
         email: this.email,
@@ -67,11 +80,12 @@ UsersSchema.methods.toAuthJSON = function() {
         activated: this.activated,
         reg_date: this.reg_date,
         notify_method: this.notify_method,
-        token: this.generateJWT()
+        token: this.generateJWT(),
+        token_long: this.generateJWT_long()
     };
 };
 
-UsersSchema.methods.toAuthJSONreg = function() {
+UsersSchema.methods.toAuthJSONreg = function () {
     return {
         _id: this._id,
         email: this.email,
@@ -81,11 +95,11 @@ UsersSchema.methods.toAuthJSONreg = function() {
     };
 };
 
-UsersSchema.methods.getUUID = function() {
+UsersSchema.methods.getUUID = function () {
     return this.uuid;
 };
 
-UsersSchema.methods.getUsername = function() {
+UsersSchema.methods.getUsername = function () {
     return this.username;
 };
 

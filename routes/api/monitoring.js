@@ -2,12 +2,12 @@ const router = require('express').Router();
 
 const auth = require('../auth');
 const cfg = require('../../config/constants');
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 const ping = require('minecraft-ping');
 
 let cache = {};
-let updateOnline = function(projectname, server, servername, index) {
-    ping.ping_fe01({ host: server.host, port: server.port }, function(err, res) {
+let updateOnline = function (projectname, server, servername, index) {
+    ping.ping_fe01({ host: server.host, port: server.port }, function (err, res) {
         if (err) {
             if (!cache[projectname])
                 cache[projectname] = {};
@@ -31,7 +31,7 @@ let updateOnline = function(projectname, server, servername, index) {
 
     });
 }
-var updateAll = function() {
+var updateAll = function () {
     for (project in cfg.projects) {
         if (!cache[project])
             cache[project] = {};
@@ -56,6 +56,12 @@ setInterval(() => updateAll(), 1000 * 10);
 
 //GET online of servers (auth optional)
 router.get('/:project/get', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,

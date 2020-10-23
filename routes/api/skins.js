@@ -6,7 +6,7 @@ const Skins = mongoose.model('Skins');
 const { Image } = require('image-js');
 const cfg = require('../../config/constants');
 const fs = require("fs");
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 
 const { createCanvas, loadImage } = require('canvas')
 
@@ -56,6 +56,12 @@ function getPart(src, x, y, width, height, scale) {
 
 //POST upload skin route (auth required)
 router.post('/:project/uploadskin', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
@@ -80,7 +86,7 @@ router.post('/:project/uploadskin', auth.required, (req, res, next) => {
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function (err, skin) {
                                             if (err) {
                                                 console.log("ban nahooi");
                                                 return res.json({
@@ -158,13 +164,19 @@ router.post('/:project/uploadskin', auth.required, (req, res, next) => {
 
 router.get('/:project/skin/:uuid.png', auth.optional, (req, res, next) => {
 
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
             message: "project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function (err, skin) {
         if (err) {
             console.log(err);
             return res.json({
@@ -191,6 +203,12 @@ router.get('/:project/skin/:uuid.png', auth.optional, (req, res, next) => {
 
 router.get('/:project/deleteskin', auth.required, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
@@ -204,7 +222,7 @@ router.get('/:project/deleteskin', auth.required, (req, res, next) => {
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function (err, skin) {
                         if (err) {
                             console.error(err);
                             return res.json({
@@ -242,6 +260,12 @@ router.get('/:project/deleteskin', auth.required, (req, res, next) => {
 //POST upload cloak route (auth required)
 router.post('/:project/uploadcloak', auth.required, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
@@ -266,7 +290,7 @@ router.post('/:project/uploadcloak', auth.required, (req, res, next) => {
                                         var base64Data = rawimage.replace(/^data:image\/png;base64,/, "");
                                         //write file to ./api/skins/:project/:servername/skins/{uuid}.png
 
-                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
+                                        Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function (err, skin) {
                                             if (err) {
                                                 console.error(err);
                                                 return res.json({
@@ -342,6 +366,12 @@ router.post('/:project/uploadcloak', auth.required, (req, res, next) => {
 
 router.get('/:project/deletecloak', auth.required, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
@@ -355,7 +385,7 @@ router.get('/:project/deletecloak', auth.required, (req, res, next) => {
                     return res.sendStatus(400);
                 } else {
 
-                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function(err, skin) {
+                    Skins.findOne({ linked_uuid: user.uuid, linked_projectname: req.params.project }, function (err, skin) {
                         if (err) {
                             console.error(err);
                             return res.json({
@@ -391,13 +421,19 @@ router.get('/:project/deletecloak', auth.required, (req, res, next) => {
 
 router.get('/:project/cloak/:uuid.png', auth.optional, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function (err, skin) {
         if (err) {
             console.error(err);
             return res.json({
@@ -428,13 +464,19 @@ router.get('/:project/cloak/:uuid.png', auth.optional, (req, res, next) => {
 
 router.get('/:project/preview/:uuid/:side', auth.optional, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+
     if (!utils.project_server_check(req.params.project, null))
         return res.json({
             error: true,
             message: "server or project does not exists!"
         });
 
-    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function(err, skin) {
+    Skins.findOne({ linked_uuid: req.params.uuid, linked_projectname: req.params.project }, function (err, skin) {
         if (err) {
             console.error(err);
             return res.json({

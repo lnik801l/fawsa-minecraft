@@ -1,6 +1,6 @@
-const cfg = require('./config/constants');
+const cfg = require('../config/constants');
 
-module.exports.project_server_check = function(projectname, servername) {
+module.exports.project_server_check = function (projectname, servername) {
     var boolean = false;
     if (servername == null) {
         if (cfg.projects[projectname])
@@ -16,18 +16,18 @@ module.exports.project_server_check = function(projectname, servername) {
 
     return boolean;
 }
-module.exports.timestamp_after_days = function(number) {
+module.exports.timestamp_after_days = function (number) {
     var date = new Date(Date.now());
     date.setDate(date.getDate() + number);
     return (date.getTime() / 1000 | 0);
 }
-module.exports.bigIntSerializer = function(num) {
+module.exports.bigIntSerializer = function (num) {
     return {
         type: "BigInt",
         value: num.toString()
     };
 }
-module.exports.sort = function(c) {
+module.exports.sort = function (c) {
     var i, j,
         left = 0,
         right = c.length - 1,

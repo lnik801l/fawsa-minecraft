@@ -6,6 +6,12 @@ const { createCanvas, loadImage } = require('canvas')
 
 //GET icon (auth optional)
 router.get('/icon/:icon', auth.optional, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (fs.existsSync(cfg.appDir + "/routes/api/icons/" + req.params.icon.replace(':', '.') + ".png")) {
         return res.sendFile(cfg.appDir + "/routes/api/icons/" + req.params.icon.replace(':', '.') + ".png");
         /*fs.readFile(cfg.appDir + "/routes/api/icons/" + req.params.icon.replace(':', '.') + ".png", {}, function(err, buffer) {

@@ -2,12 +2,12 @@ const Discord = require('discord.js');
 const mongoose = require('mongoose');
 const Users = mongoose.model('Users');
 
-const cfg = require('./config/constants');
+const cfg = require('../config/constants');
 
 let clients = {};
 let rolecache = {};
 
-module.exports.init = function(token, project) {
+module.exports.init = function (token, project) {
     let client = new Discord.Client();
     client.on('ready', () => {
         console.log(`[Discord] Logged in as ${client.user.tag}!`);
@@ -62,7 +62,7 @@ module.exports.init = function(token, project) {
         if (!flag)
             return;
 
-        Users.findOne({ discord_id: member.user.id }, function(err, doc) {
+        Users.findOne({ discord_id: member.user.id }, function (err, doc) {
             if (err)
                 console.log(err);
             if (doc)
@@ -76,7 +76,7 @@ module.exports.init = function(token, project) {
     client.on("message", (message) => {
         let flag = false;
         for (p in cfg.projects) {
-            if (cfg.projects[p].settings.dc_guild_id == message.guild.id)
+            if (message.guild != null && cfg.projects[p].settings.dc_guild_id == message.guild.id)
                 flag = true;
         }
         if (!flag)
@@ -87,8 +87,9 @@ module.exports.init = function(token, project) {
         }
     });
     client.login(token);
+    clients[project] = client;
 }
-module.exports.instance = function(project) {
+module.exports.instance = function (project) {
     if (clients[project])
         return clients[project];
     else
@@ -96,7 +97,7 @@ module.exports.instance = function(project) {
 };
 
 function validateUsers(Guild, project) {
-    Users.find(function(err, docs) {
+    Users.find(function (err, docs) {
         if (err)
             return console.log(err);
         if (docs)

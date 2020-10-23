@@ -10,7 +10,7 @@ const request = require('request');
 const fs = require('fs');
 
 const cfg = require('../../config/constants');
-const utils = require('../../utils');
+const utils = require('../../modules/utils');
 const auth = require('../auth');
 
 var cache = {};
@@ -27,12 +27,12 @@ function updateCache(project, server) {
           param: 'edit',
           value: 100
         }*/
-    }, function(error, response, body) {
+    }, function (error, response, body) {
         if (error) {
             cache[project][server].error = true;
         }
         if (!error && response.statusCode == 200) {
-            fs.readFile(cfg.appDir + 'items.json', function(err, buffer) {
+            fs.readFile(cfg.appDir + 'items.json', function (err, buffer) {
                 if (err)
                     return console.log(err);
                 let localCache = JSON.parse(body);
@@ -76,6 +76,11 @@ setInterval(() => {
 //GET all items from in-game shop (auth not required)
 router.get('/:project/:servername/getshopallitems', auth.optional, (req, res, next) => {
 
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     if (!utils.project_server_check(req.params.project, req.params.servername))
         return res.json({
             error: true,
@@ -92,6 +97,12 @@ router.get('/:project/:servername/getshopallitems', auth.optional, (req, res, ne
 
 //GET all items in cart (auth required)
 router.get('/:project/:servername/getcartitems', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     if (!utils.project_server_check(req.params.project, req.params.servername))
@@ -114,7 +125,7 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
                 })
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log("ban nahooi");
@@ -128,7 +139,7 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
                     let tempItems = cart.items;
                     let flag = false;
 
-                    tempItems.forEach(function(e, index, object) {
+                    tempItems.forEach(function (e, index, object) {
                         if (!cache[req.params.project][req.params.servername].items[e.id]) {
                             object.splice(index, 1);
                             flag = true;
@@ -175,6 +186,12 @@ router.get('/:project/:servername/getcartitems', auth.required, (req, res, next)
 
 //POST add item to cart (auth required)
 router.post('/:project/:servername/addtocart', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const item = req.body;
 
@@ -191,7 +208,7 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log(err);
@@ -277,6 +294,12 @@ router.post('/:project/:servername/addtocart', auth.required, (req, res, next) =
 
 //GET clear cart (auth required)
 router.get('/:project/:servername/clearcart', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     if (!utils.project_server_check(req.params.project, req.params.servername))
@@ -291,7 +314,7 @@ router.get('/:project/:servername/clearcart', auth.required, (req, res, next) =>
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
                     console.log(err);
                     return res.json({
@@ -330,6 +353,13 @@ router.get('/:project/:servername/clearcart', auth.required, (req, res, next) =>
 
 //POST del item(s) from cart (auth required)
 router.post('/:project/:servername/delcartitems', auth.required, (req, res, next) => {
+
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const items = req.body;
 
@@ -345,7 +375,7 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log(err);
@@ -362,7 +392,7 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
                         if (cart.items)
                             newItems = cart.items;
 
-                        newItems.forEach(function(e, index, object) {
+                        newItems.forEach(function (e, index, object) {
                             items.forEach(e1 => {
                                 if (e1 == e.id)
                                     object.splice(index, 1);
@@ -403,6 +433,13 @@ router.post('/:project/:servername/delcartitems', auth.required, (req, res, next
 
 //GET decrement item from cart (auth required)
 router.get('/:project/:servername/decrementitem/:id', auth.required, (req, res, next) => {
+
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     if (!utils.project_server_check(req.params.project, req.params.servername))
@@ -417,7 +454,7 @@ router.get('/:project/:servername/decrementitem/:id', auth.required, (req, res, 
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log(err);
@@ -430,7 +467,7 @@ router.get('/:project/:servername/decrementitem/:id', auth.required, (req, res, 
                 if (cart) {
 
                     let newItems = cart.items;
-                    newItems.forEach(function(e, index, object) {
+                    newItems.forEach(function (e, index, object) {
                         if (e.id == req.params.id)
                             e.count--;
                         if (e.count <= -1) {
@@ -467,6 +504,12 @@ router.get('/:project/:servername/decrementitem/:id', auth.required, (req, res, 
 
 //GET increment item from cart (auth required)
 router.get('/:project/:servername/incrementitem/:id', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
 
     if (!utils.project_server_check(req.params.project, req.params.servername))
@@ -481,7 +524,7 @@ router.get('/:project/:servername/incrementitem/:id', auth.required, (req, res, 
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log(err);
@@ -527,6 +570,12 @@ router.get('/:project/:servername/incrementitem/:id', auth.required, (req, res, 
 
 //GET buy all items from cart (auth required)
 router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     console.log("ПРОВЕРЬ МЕНЯ")
     const { payload: { id } } = req;
 
@@ -542,7 +591,7 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
                     console.log(err);
                     return res.json({
@@ -552,7 +601,7 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
                 }
                 if (cart) {
 
-                    Money.findOne({ linked_user_id: user._id, project: req.params.project }, function(err, money) {
+                    Money.findOne({ linked_user_id: user._id, project: req.params.project }, function (err, money) {
                         if (err) {
                             console.log(err);
                             return res.json({
@@ -571,10 +620,10 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
                                 var totalPrice = 0;
                                 var updatedCartItems = cart.items;
 
-                                updatedCartItems.forEach(function(e, index, object) {
+                                updatedCartItems.forEach(function (e, index, object) {
                                     if (cache[req.params.project][req.params.servername].items[e.id]) {
                                         totalPrice += (cache[req.params.project][req.params.servername].items[e.id].price -
-                                                (cache[req.params.project][req.params.servername].items[e.id].price / 100 * cache[req.params.project][req.params.servername].items[e.id].discount)) *
+                                            (cache[req.params.project][req.params.servername].items[e.id].price / 100 * cache[req.params.project][req.params.servername].items[e.id].discount)) *
                                             e.count;
                                     } else {
                                         console.log("aga");
@@ -677,6 +726,12 @@ router.get('/:project/:servername/buycart', auth.required, (req, res, next) => {
 
 //POST del bought item(s) from cart (auth required)
 router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const items = req.body;
 
@@ -692,7 +747,7 @@ router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res
                 return res.sendStatus(400);
             }
 
-            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function(err, cart) {
+            Cart.findOne({ linked_user_id: user._id, linked_projectname: req.params.project, linked_servername: req.params.servername }, function (err, cart) {
                 if (err) {
 
                     console.log("ban nahooi");
@@ -749,6 +804,12 @@ router.post('/:project/:servername/delcartboughtitems', auth.required, (req, res
 
 //POST add donate group for specific project (admin required)
 router.post('/:project/addgroup', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const json = req.body;
     var boolean = false;
@@ -780,7 +841,7 @@ router.post('/:project/addgroup', auth.required, (req, res, next) => {
                     message: "you are not admin!"
                 });
             if (user.is_gadmin) {
-                Group.findOne({ project: req.params.project, name: json.name, cost: json.cost, expires_in_days: json.expires_in_days }, function(err, group) {
+                Group.findOne({ project: req.params.project, name: json.name, cost: json.cost, expires_in_days: json.expires_in_days }, function (err, group) {
                     if (err)
                         res.json({
                             error: true,
@@ -813,6 +874,12 @@ router.post('/:project/addgroup', auth.required, (req, res, next) => {
 
 //POST delete donate group for specific project (admin required)
 router.get('/:project/deletegroup/:id', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     var boolean = false;
 
@@ -838,14 +905,14 @@ router.get('/:project/deletegroup/:id', auth.required, (req, res, next) => {
                     message: "you are not admin!"
                 });
             if (user.is_gadmin) {
-                Group.findById(req.params.id, function(err, group) {
+                Group.findById(req.params.id, function (err, group) {
                     if (err)
                         return res.json({
                             error: true,
                             message: "error in check groupExists"
                         });
                     if (group) {
-                        group.remove(function(err, document) {
+                        group.remove(function (err, document) {
                             if (err)
                                 return res.json({
                                     error: true,
@@ -872,7 +939,13 @@ router.get('/:project/deletegroup/:id', auth.required, (req, res, next) => {
 
 //GET all groups for specific project (auth not required)
 router.get('/:project/getgroups', auth.optional, (req, res, next) => {
-    Group.find({ project: req.params.project }, function(err, collections) {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+    Group.find({ project: req.params.project }, function (err, collections) {
         if (err)
             return res.json({
                 error: true,
@@ -892,6 +965,12 @@ router.get('/:project/getgroups', auth.optional, (req, res, next) => {
 });
 
 router.post('/:project/:servername/buygroup', auth.required, (req, res, next) => {
+
+    var origin = req.headers.origin;
+    if (cfg.api_allowed_cors.indexOf(origin) > -1) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
     const { payload: { id } } = req;
     const json = req.body;
 
@@ -915,7 +994,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                 return res.sendStatus(401);
             if (user) {
 
-                Money.findOne({ linked_user_id: user._id, project: req.params.project }, function(err, money) {
+                Money.findOne({ linked_user_id: user._id, project: req.params.project }, function (err, money) {
                     if (err)
                         return res.json({
                             error: true,
@@ -927,7 +1006,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                             message: "you do not have enough currency!"
                         })
                     if (money) {
-                        Group.findById(json._id, function(err, group) {
+                        Group.findById(json._id, function (err, group) {
                             if (err) {
                                 return res.json({
                                     error: true,
@@ -942,11 +1021,11 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
 
                             if (money.realmoney >= group.cost) {
 
-                                MongoClient.connect(cfg.mongodb_url, function(err, db) {
+                                MongoClient.connect(cfg.mongodb_url, function (err, db) {
                                     if (err) throw err;
                                     var db_project = db.db(cfg.projects[req.params.project].settings.db_name);
 
-                                    db_project.collection("luckperms_uuid").findOne({ name: user.username }, function(err, uuid) {
+                                    db_project.collection("luckperms_uuid").findOne({ name: user.username }, function (err, uuid) {
                                         if (err)
                                             throw err;
                                         if (!uuid)
@@ -955,7 +1034,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                 message: "you must join game once!"
                                             })
                                         if (uuid) {
-                                            db_project.collection("luckperms_users").findOne({ _id: uuid._id }, function(err, lp_user) {
+                                            db_project.collection("luckperms_users").findOne({ _id: uuid._id }, function (err, lp_user) {
                                                 if (err)
                                                     throw err;
                                                 if (!lp_user) {
@@ -965,20 +1044,20 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                             name: user.username,
                                                             primaryGroup: "default",
                                                             permissions: [{
-                                                                    key: group.lp_name,
-                                                                    value: true,
-                                                                    expiry: Long.fromInt(utils.timestamp_after_days(group.expires_in_days)),
-                                                                    context: [{
-                                                                        key: "server",
-                                                                        value: req.params.servername
-                                                                    }]
-                                                                },
-                                                                {
-                                                                    key: "group.default",
-                                                                    value: true
-                                                                }
+                                                                key: group.lp_name,
+                                                                value: true,
+                                                                expiry: Long.fromInt(utils.timestamp_after_days(group.expires_in_days)),
+                                                                context: [{
+                                                                    key: "server",
+                                                                    value: req.params.servername
+                                                                }]
+                                                            },
+                                                            {
+                                                                key: "group.default",
+                                                                value: true
+                                                            }
                                                             ]
-                                                        }, function(err, result) {
+                                                        }, function (err, result) {
                                                             db.close();
                                                             if (err) {
                                                                 res.json({
@@ -1002,7 +1081,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                         for (i in testvar) {
                                                             if (testvar[i].key == group.lp_name && testvar[i].expiry > (Date.now() / 1000 | 0) &&
 
-                                                                function() {
+                                                                function () {
                                                                     if (testvar[i].context)
                                                                         for (j in testvar[i].context) {
                                                                             if (testvar[i].context[j].key == server && testvar[i].context[j.value == req.params.servername])
@@ -1033,7 +1112,7 @@ router.post('/:project/:servername/buygroup', auth.required, (req, res, next) =>
                                                             "_id": lp_user._id
                                                         }, {
                                                             $set: { "permissions": testvar }
-                                                        }, function(err, result) {
+                                                        }, function (err, result) {
                                                             if (err) {
                                                                 res.json({
                                                                     error: true,

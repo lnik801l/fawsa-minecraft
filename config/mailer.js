@@ -5,7 +5,7 @@ const cfg = require('../config/constants');
 const request = require('request');
 const dc = require('discord.js');
 
-const discord = require('../discord');
+const discord = require('../modules/discord');
 
 // async..await is not allowed in global scope, must use a wrapper
 module.exports.sendMail = function main(to, token, project, type, method) {
@@ -472,7 +472,7 @@ async function sendNotifyChange(user, token, project, method) {
 
         console.log(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken));
 
-        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function(err, response, body) {
+        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function (err, response, body) {
             if (err)
                 console.log(err);
             if (response) {
@@ -943,7 +943,7 @@ async function sendMailChange(user, token, project, method) {
 
         console.log(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken));
 
-        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function(err, response, body) {
+        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function (err, response, body) {
             if (err)
                 console.log(err);
             if (response) {
@@ -1414,7 +1414,7 @@ async function sendPasswdChange(user, token, project, method) {
 
         console.log(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken));
 
-        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function(err, response, body) {
+        request(encodeURI('https://api.vk.com/method/messages.send?' + params + "&" + vktoken), function (err, response, body) {
             if (err)
                 console.log(err);
             if (response) {
