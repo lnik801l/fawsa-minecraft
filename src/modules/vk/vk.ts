@@ -1,4 +1,4 @@
-import { VK as vkAPI, API, Responses } from 'vk-io';
+import { VK as vkAPI } from 'vk-io';
 import { Cfg } from '../../utils/Cfg';
 import Logger from '../../utils/Logger';
 import discord from '../discord/discord';
