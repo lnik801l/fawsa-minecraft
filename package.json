@@ -1,31 +1,40 @@
 {
-  "lockfileVersion": 1,
+  "name": "fawsa-minecraft",
+  "version": "2.0.0",
+  "description": "fast async website api for minecraft projects",
+  "main": "index.js",
+  "scripts": {
+    "prod": "rollup -c",
+    "dev": "tsnd src/main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lnik801l/fawsa-minecraft.git"
+  },
+  "author": "l_nik801_l",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lnik801l/fawsa-minecraft/issues"
+  },
+  "homepage": "https://github.com/lnik801l/fawsa-minecraft#readme",
   "dependencies": {
-    "@charlesstover/quicksort": "^1.0.2",
-    "canvas": "^2.6.1",
-    "cors": "^2.8.5",
-    "crypto-random-string": "^3.2.0",
-    "discord.js": "^12.2.0",
-    "errorhandler": "^1.5.1",
+    "@types/express": "^4.17.8",
+    "@types/jsonwebtoken": "^8.5.0",
+    "body-parser": "^1.19.0",
+    "chalk": "^4.1.0",
+    "discord.js": "^12.4.1",
     "express": "^4.17.1",
-    "express-jwt": "^5.3.3",
-    "express-session": "^1.17.1",
-    "image-js": "^0.21.9",
     "jsonwebtoken": "^8.5.1",
-    "md5": "^2.2.1",
-    "minecraft-ping": "^1.0.0",
-    "mongoose": "^5.9.10",
-    "mongoose-long": "^0.3.0",
-    "morgan": "^1.10.0",
-    "nbt": "^0.8.1",
-    "nodemailer": "^6.4.6",
-    "passport": "^0.4.1",
-    "passport-jwt": "^4.0.0",
-    "passport-local": "^1.0.0",
+    "mongoose": "^5.10.10",
     "request": "^2.88.2",
-    "sha1": "^1.1.1",
-    "uuid": "^7.0.3",
-    "vk-io": "^4.0.0-rc.30",
-    "winston": "^3.3.3"
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.3",
+    "uuid": "^8.3.1",
+    "vk-io": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/mongoose": "^5.7.36",
+    "ts-node-dev": "^1.0.0"
   }
 }
