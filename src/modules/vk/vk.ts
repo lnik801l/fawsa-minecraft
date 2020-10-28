@@ -24,10 +24,14 @@ class VK {
                 bot: false,
                 news_discord_channel_id: 'example'
             }
-        ]
+        ],
+        max_messages_per_second: 5
     })
 
     private static groups: Map<number, vkAPI> = new Map();
+    private static pendingMessages: Map<number, Array<() => void>> = new Map();
+    private static ticker = setInterval(() => VK.tick(), 1000);
+
     constructor() {
         const data = VK.config.params.groups as Array<cfg_schema>;
         data.forEach((v) => {
@@ -39,11 +43,42 @@ class VK {
                 });
                 VK.initFeatures(vk, v);
                 VK.groups.set(v.group_id, vk);
+                VK.pendingMessages.set(v.group_id, new Array());
                 vk.updates.startPolling()
                     .then(() => VK.logger.log(`опрос группы ${v.group_id} запущен`))
                     .catch((err) => VK.logger.err(`запуск опроса группы ${v.group_id} завершился с ошибкой: ${err}`));
             }
         });
+    }
+
+    private static tick() {
+        VK.pendingMessages.forEach(async (arr, _key) => {
+            for (let i = 0; i < VK.config.params.max_messages_per_second; i++) {
+                try {
+                    if (arr.length > 0) await arr[0]();
+                } catch (err) {
+                    this.logger.err(err.stack);
+                } finally {
+                    arr.shift();
+                }
+            }
+        })
+    }
+
+    public static sendMessage(p: { groupID: number, target: number, message: string, keyboard?: string }, cb?: (ok: boolean, status: number) => void) {
+        VK.pendingMessages.get(p.groupID).push(async () => {
+            const params = p;
+
+            const rnd = Math.floor(Math.random() * Math.floor(999999));
+            const res = await VK.groups.get(params.groupID).api.messages.send({
+                peer_id: params.target,
+                message: params.message,
+                keyboard: params.keyboard,
+                random_id: rnd
+            });
+            if (cb) cb(res != null, res);
+
+        })
     }
 
     private static initFeatures(instance: vkAPI, cfg: cfg_schema) {

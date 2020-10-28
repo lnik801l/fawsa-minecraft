@@ -2,6 +2,7 @@ import * as disAPI from 'discord.js';
 import { Attachment, ExternalAttachment, Responses } from 'vk-io';
 import { Cfg } from '../../utils/Cfg';
 import Logger from '../../utils/Logger';
+import VK from '../vk/vk';
 
 class discord {
 
@@ -93,6 +94,30 @@ class discord {
             }
 
         }, "удаление последних X сообщений в канале");
+        discord.addCommand('message', true, async (msg, args) => {
+            if (args.length >= 3) {
+                const target_id = Number.parseInt(args[0]);
+                const group_id = Number.parseInt(args[1]);
+
+                if (typeof target_id == 'undefined' ||
+                    target_id == null ||
+                    typeof group_id == 'undefined' ||
+                    group_id == null)
+                    return msg.reply('target_id или group_id не числа!');
+
+                let message: string = '';
+                for (let i = 2; i < args.length; i++) {
+                    if (message.length != 0)
+                        message += ' ';
+                    message += args[i];
+                }
+                return VK.sendMessage({ groupID: group_id, target: target_id, message }, (ok) => {
+                    msg.reply(ok ? 'сообщение отправлено успешно!' : 'произошла ошибка при отправке сообщения.');
+                });
+            } else {
+                return msg.reply('недостаточно аргументов!');
+            }
+        }, 'команда для отправки сообщения пользователю в вк. (target_id: number, group_id: number, ...message: string)');
     }
 
     public static addCommand(cmd: string, admin: boolean, cb: (msg: disAPI.Message, args: Array<string>, isAdmin: boolean) => void, desc?: string) {
