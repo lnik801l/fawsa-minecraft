@@ -1,7 +1,7 @@
 import * as disAPI from 'discord.js';
-import { Attachment, ExternalAttachment, Responses } from 'vk-io';
+import { Attachment, ExternalAttachment, Keyboard, Responses } from 'vk-io';
+import { Logger } from '../../utils';
 import { Cfg } from '../../utils/Cfg';
-import Logger from '../../utils/Logger';
 import VK from '../vk/vk';
 
 class discord {
@@ -118,6 +118,20 @@ class discord {
                 return msg.reply('недостаточно аргументов!');
             }
         }, 'команда для отправки сообщения пользователю в вк. (target_id: number, group_id: number, ...message: string)');
+        discord.addCommand('testkeyboard', true, async (_msg, _args) => {
+            const keyboard = Keyboard.builder().textButton({
+                label: '1',
+                payload: {
+                    command: 'back'
+                }
+            }).callbackButton({
+                label: '2',
+                payload: {
+                    command: 'back'
+                }
+            });
+            VK.sendMessage({ groupID: -195257354, target: 207789877, message: 'test', keyboard: keyboard.toString() })
+        })
     }
 
     public static addCommand(cmd: string, admin: boolean, cb: (msg: disAPI.Message, args: Array<string>, isAdmin: boolean) => void, desc?: string) {

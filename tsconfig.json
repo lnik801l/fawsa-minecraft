@@ -1,7 +1,10 @@
 {
     "compilerOptions": {
-      "target": "es2020",
-      "module": "commonjs",
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "resolveJsonModule": true,
+      "target": "ES6",
+      "module": "CommonJS",
       "moduleResolution": "node",
       "rootDir": "./src",
       "allowSyntheticDefaultImports": true,
@@ -17,9 +20,14 @@
       "noUnusedParameters": true,
       "noImplicitAny": false,
       "noImplicitThis": false,
-      "strictNullChecks": false
+      "strictNullChecks": false,
+      "lib": [
+        "esnext",
+        "dom"
+      ],
     },
     "include": [
+      "./node_modules/reflect-metadata/Reflect.d.ts",
       "src/**/*"
     ]
   }

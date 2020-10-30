@@ -70,4 +70,4 @@ class Logger {
     console.error(chalk.red(write));
   }
 }
-export default Logger;
+export { Logger };

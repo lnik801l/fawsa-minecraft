@@ -1,6 +1,6 @@
 import { VK as vkAPI } from 'vk-io';
+import { Logger } from '../../utils';
 import { Cfg } from '../../utils/Cfg';
-import Logger from '../../utils/Logger';
 import discord from '../discord/discord';
 
 interface cfg_schema {
@@ -52,16 +52,17 @@ class VK {
     }
 
     private static tick() {
-        VK.pendingMessages.forEach(async (arr, _key) => {
-            for (let i = 0; i < VK.config.params.max_messages_per_second; i++) {
-                try {
-                    if (arr.length > 0) await arr[0]();
-                } catch (err) {
-                    this.logger.err(err.stack);
-                } finally {
-                    arr.shift();
+        VK.pendingMessages.forEach(async (arr, key) => {
+            if (VK.groups.get(key).updates.isStarted)
+                for (let i = 0; i < VK.config.params.max_messages_per_second; i++) {
+                    try {
+                        if (arr.length > 0) await arr[0]();
+                    } catch (err) {
+                        this.logger.err(err.stack);
+                    } finally {
+                        arr.shift();
+                    }
                 }
-            }
         })
     }
 
@@ -85,8 +86,7 @@ class VK {
         if (cfg.news_to_discord)
             VK.newsToDiscord(instance, cfg);
         if (cfg.bot)
-            //TODO: make it functional
-            return;
+            VK.bot(instance, cfg);
     }
 
     private static newsToDiscord(i: vkAPI, cfg: cfg_schema) {
@@ -102,6 +102,9 @@ class VK {
             discord.postVkToDiscord(cfg.news_discord_channel_id, { link, author, text: next.wall.text, attachments: next.wall.attachments });
 
         });
+    }
+
+    private static bot(_i: vkAPI, _cfg: cfg_schema) {
     }
 
 }

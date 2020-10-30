@@ -1,6 +1,6 @@
-import Logger from './Logger';
 import chalk = require('chalk');
 import * as fs from 'fs';
+import { Logger } from './Logger';
 
 class Cfg {
   private name = '';

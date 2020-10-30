@@ -1,6 +1,6 @@
 import { Cfg } from "./Cfg"
-import Logger from './Logger';
 import request from 'request';
+import { Logger } from './Logger';
 
 class Captcha {
     private static logger: Logger = new Logger('captcha');
@@ -37,4 +37,4 @@ class Captcha {
     }
 }
 
-export default Captcha;
+export { Captcha };

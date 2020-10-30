@@ -1,7 +1,9 @@
 import mongoose = require('mongoose');
-import usershema from './schemas/Users';
+import { User } from './schemas/Users';
 import { Cfg } from '../Cfg';
-import Logger from '../Logger';
+import { Logger } from '../Logger';
+import { getModelForClass } from '@typegoose/typegoose';
+import { token_data } from '../Auth';
 
 class database {
     private static mongo = mongoose;
@@ -15,7 +17,7 @@ class database {
         auth_database: 'admin',
     });
 
-    //private static users = database.mongo.model('users', usershema);
+    private static users = getModelForClass(User);
 
     constructor() {
         this.connect();
@@ -30,10 +32,12 @@ class database {
         }
     }
 
-    /*
+    public static async getUser(username: string): Promise<User> {
+        return await this.users.findOne({ username }).exec();
+    }
 
-    public static async getUser(username: string): Promise<usershema> {
-        return await this.users.findOne({ username }).exec() as usershema;
+    public static async getUserAuth(data: token_data): Promise<User> {
+        return await this.users.findOne({ username: data.username, salt: data.salt }).exec();
     }
 
     public static async createUser(
@@ -41,15 +45,18 @@ class database {
         password: string,
         email: string,
         refer?: string
-    ) {
-        const target = await this.users.findOne({ $or: [{ username }, { email }] });
-        if (target)
-            throw 'пользователь с таким именем пользователя или паролем уже существует!';
-        return (await new UserSchema(username, password, email, refer).save()).execPopulate();
+    ): Promise<User> {
+        return new Promise<User>(async (resolve, reject) => {
+            const target = await this.users.findOne({ $or: [{ username }, { email }] });
+            if (target) return reject('пользователь с таким именем пользователя или email уже существует!');
+            const u = new this.users();
+            u.construct(username, password, email, refer);
+            u.save().then((d) => {
+                return resolve(d as unknown as User);
+            });
+        });
     }
-    */
-
 
 }
 
-export default database;
+export { database };

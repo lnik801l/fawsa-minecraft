@@ -1,7 +1,7 @@
 import express = require('express');
 import Utils from '../../../utils';
-import db from '../../../../../utils/database/database';
-import Logger from '../../../../../utils/Logger';
+import { auth_get, auth_register } from '../../../../../queries_types';
+import { Logger, database } from '../../../../../utils';
 
 const router = express.Router();
 const utils = new Utils(router);
@@ -11,14 +11,21 @@ utils.get('/refresh', { captcha: false }, (_req, res) => {
     res.send({ message: 'test suka1' });
 });
 
-utils.post('/get', { captcha: false, auth: false }, (_req, res) => {
-    res.send({ message: 'test suka2' });
+utils.post<auth_get>('/get', { captcha: false, auth: false, interfaceName: 'auth_get' }, async (res, data) => {
+    const u = await database.getUser(data.username);
+    if (!u || !u.validatePassword(data.password)) return res.json({ error: true, message: 'неверное имя пользователя или пароль' });
+    return res.json(await u.toAuthJSON());
+
 });
 
-utils.post('/register', { captcha: false, auth: false }, (_req, res, data) => {
-    logger.log(data);
-    res.send(data);
-    //db.getUser();
-});
+utils.post<auth_register>('/register', { captcha: false, auth: false, interfaceName: 'auth_register' },
+    async (res, data) => {
+        try {
+            res.json((await database.createUser(data.username, data.password, data.email, data.refer)).toAuthJSONreg());
+        } catch (err) {
+            res.json({ err: true, message: err });
+        }
+    }
+);
 
 export default router;

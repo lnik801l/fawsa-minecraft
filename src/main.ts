@@ -1,17 +1,22 @@
-import { VK } from 'vk-io';
 import discord from './modules/discord/discord';
 import vk from './modules/vk/vk';
 import web from './modules/web/web';
-import database from './utils/database/database';
-import Logger from "./utils/Logger";
+import { database } from './utils';
+import { Cfg } from './utils/Cfg';
 
-const logger: Logger = new Logger('main');
-
-logger.warn("launch...");
 new web(5000);
 new database();
 new discord();
 new vk();
+
+const cfg = new Cfg('main', {
+  debug: true
+});
+
+export { cfg as main_config };
+
+
+
 
 /*
 Auth.generateAccessToken('testUSername', 'asdasdads', (token) => {

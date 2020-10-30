@@ -1,7 +1,7 @@
 import express = require('express');
 import { Cfg } from '../../utils/Cfg';
-import Logger from '../../utils/Logger';
 import { json as parser_json } from 'body-parser';
+import { Logger } from '../../utils';
 
 class Web {
     public static config: Cfg = new Cfg('web', {

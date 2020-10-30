@@ -3,6 +3,13 @@ import * as fs from 'fs';
 import { Cfg } from './Cfg';
 import { generateKeyPair, publicEncrypt, privateDecrypt } from 'crypto';
 import { Logger } from './Logger';
+import { User } from './database/schemas/Users';
+import { main_config } from '../main';
+
+interface token_data {
+    username: string,
+    salt: string
+}
 
 class Auth {
 
@@ -96,45 +103,40 @@ class Auth {
         return decrypted.toString("utf8");
     };
 
-    private static seriallize(data: object): object {
+    private static seriallize(data: token_data): object {
         return {
             data: Auth.encrypt(JSON.stringify(data)).toString()
         }
     }
 
-    private static deseriallize(o: any): object {
+    private static deseriallize(o: any): token_data {
         o.data = JSON.parse(Auth.decrypt(o.data).toString());
         return o;
     }
 
-    public static async generateAccessToken(username: string, hash: string, callback: (token: string) => void = null) {
-        await Auth.init();
-
-        if (callback == null)
-            return Auth.encrypt(jwt.sign(Auth.seriallize({ username, hash }), { key: Auth.pkey1, passphrase: Auth.config.params.passphrase1 }, { algorithm: 'RS256', expiresIn: '10m' }));
-        else
-            jwt.sign(Auth.seriallize({ username, hash }), { key: Auth.pkey1, passphrase: Auth.config.params.passphrase1 }, { algorithm: 'RS256', expiresIn: '10m' }, (err: Error, token: string) => {
-                if (err) return Auth.logger.err('произошла ошибка при генерации токена! ' + err.stack);
-                callback(token);
+    public static generateAccessToken(data: token_data): Promise<string> {
+        return new Promise(async (resolve, reject) => {
+            await Auth.init();
+            jwt.sign(Auth.seriallize({ username: data.username, salt: data.salt }), { key: Auth.pkey1, passphrase: Auth.config.params.passphrase1 }, { algorithm: 'RS256', expiresIn: '10m' }, (err: Error, token: string) => {
+                if (err) return reject(Auth.logger.err('произошла ошибка при генерации токена! ' + err.stack));
+                return resolve(token);
             });
-        return null;
+        });
+
+
+
     }
 
-    public static async validateToken(t: string, callback: (decoded: any) => void = null) {
-        await Auth.init();
-
-        if (callback == null)
-            return Auth.deseriallize(jwt.verify(t, Auth.pubkey1));
-        else {
+    public static async validateToken(t: string): Promise<token_data> {
+        return new Promise(async (resolve, reject) => {
+            await Auth.init();
             jwt.verify(t, Auth.pubkey1, (err: Error, decoded: any) => {
-                if (err) return Auth.logger.err('произошла ошибка при валидировании токена! ' + err.stack);
-                callback(Auth.deseriallize(decoded));
+                if (err) return reject(`произошла ошибка при валидировании токена! ${main_config.params.debug ? err.stack : ''}`);
+                return resolve(Auth.deseriallize(decoded));
             });
-        }
-        return null;
-
+        });
     }
 
 }
 
-export { Auth };
+export { Auth, token_data };
