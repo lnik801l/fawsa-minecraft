@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import { Cfg } from './Cfg';
 import { generateKeyPair, publicEncrypt, privateDecrypt } from 'crypto';
 import { Logger } from './Logger';
-import { User } from './database/schemas/Users';
 import { main_config } from '../main';
 
 interface token_data {

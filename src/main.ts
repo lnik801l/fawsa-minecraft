@@ -14,18 +14,3 @@ const cfg = new Cfg('main', {
 });
 
 export { cfg as main_config };
-
-
-
-
-/*
-Auth.generateAccessToken('testUSername', 'asdasdads', (token) => {
-  log.log(token);
-  Auth.validateToken(token, (decoded) => {
-    log.log(decoded);
-  });
-});
-*/
-
-
-
