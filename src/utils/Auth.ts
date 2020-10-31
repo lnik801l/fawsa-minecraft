@@ -8,7 +8,9 @@ import { main_config } from '../main';
 
 interface token_data {
     username: string,
-    salt: string
+    salt: string,
+    iat?: number,
+    exp?: number
 }
 
 class Auth {
@@ -111,6 +113,10 @@ class Auth {
 
     private static deseriallize(o: any): token_data {
         o.data = JSON.parse(Auth.decrypt(o.data).toString());
+        for (const p in o.data) {
+            o[p] = o.data[p];
+        }
+        delete o.data;
         return o;
     }
 

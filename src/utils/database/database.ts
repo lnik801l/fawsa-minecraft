@@ -37,7 +37,13 @@ class database {
     }
 
     public static async getUserAuth(data: token_data): Promise<User> {
-        return await this.users.findOne({ username: data.username, salt: data.salt }).exec();
+        return new Promise<User>(async (resolve, reject) => {
+            try {
+                return resolve(await this.users.findOne({ username: data.username }).exec());
+            } catch (err) {
+                return reject(err);
+            }
+        });
     }
 
     public static async createUser(

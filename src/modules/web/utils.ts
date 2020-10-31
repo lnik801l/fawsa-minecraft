@@ -1,7 +1,6 @@
 import express = require('express');
 import { CastError, safeCast } from 'safe-cast';
 import { Captcha, Auth } from '../../utils';
-import { token_data } from '../../utils/Auth';
 import { database } from '../../utils/database/database';
 import { User } from '../../utils/database/schemas/Users';
 
@@ -12,16 +11,39 @@ class utils {
         this.router = router;
     }
 
-    public get(path: string, params: { captcha: boolean }, callback: (req: express.Request, res: express.Response) => void) {
+    private static async auth(req: express.Request, res: express.Response): Promise<User | null> {
+        const token = req.headers.token;
+        if (!token) {
+            res.status(401).json({ error: true, message: 'токен не может быть пустым!' });
+            return null;
+        }
+        try {
+            return await database.getUserAuth(await Auth.validateToken(token as string));
+        } catch (err) {
+            res.status(401).json({ error: true, message: 'токен недействителен.' });
+            return null;
+        }
+    };
+
+    public get(path: string, params: { captcha: boolean, auth: boolean }, callback: (req: express.Request, res: express.Response, user: User) => void) {
         this.router.get(path, async function (req, res) {
+
+            let user: User = null;
+
+            if (params.auth) {
+                const a = await utils.auth(req, res);
+                if (a == null) return;
+                else user = a;
+            }
+
             if (params.captcha) {
                 if (!req.body.captcha) return res.status(400).send({ error: true, message: "captcha not provided!" });
                 return Captcha.validate(req.body.captcha).then((data) => {
                     if (data.err) return res.send(data);
-                    return callback(req, res);
+                    return callback(req, res, user);
                 });
             }
-            callback(req, res);
+            callback(req, res, user);
         });
     }
 
@@ -37,13 +59,9 @@ class utils {
                 return res.status(400).json({ error: true, message: 'невалидные входящие данные!' });
 
             if (params.auth) {
-                const token = req.headers.token;
-                if (!token) return res.status(401).json({ error: true, message: 'токен не может быть пустым!' });
-                try {
-                    user = await database.getUserAuth(await Auth.validateToken(token as string));
-                } catch (err) {
-                    return res.status(401).json({ error: true, message: err });
-                }
+                const a = await utils.auth(req, res);
+                if (a == null) return;
+                else user = a;
             }
 
             if (params.captcha) {

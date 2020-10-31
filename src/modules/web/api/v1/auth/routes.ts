@@ -7,7 +7,7 @@ const router = express.Router();
 const utils = new Utils(router);
 const logger: Logger = new Logger('v1 auth');
 
-utils.get('/refresh', { captcha: false }, (_req, res) => {
+utils.get('/refresh', { captcha: false, auth: true }, (_req, res) => {
     res.send({ message: 'test suka1' });
 });
 
