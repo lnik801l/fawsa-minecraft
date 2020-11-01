@@ -24,6 +24,26 @@ export class Skins {
         return this.skin;
     }
 
+    public async getHead(param?: Buffer): Promise<Buffer> {
+
+        let b: Buffer = Buffer.from(this.skin, 'base64');
+        if (param != null)
+            b = param;
+
+        const img = await canvas.loadImage(b);
+
+        const localHead = this.getPart(img, 8 * img.width / 64, 8 * img.width / 64, 8 * img.width / 64, 8 * img.width / 64, 1);
+        const ctx = localHead.getContext('2d');
+        const armorHead = this.getPart(img, 40 * img.width / 64, 8 * img.width / 64, 40 * img.width / 64, 8 * img.width / 64, 1);
+        ctx.drawImage(armorHead, 0, 0, armorHead.width, armorHead.height);
+        const oc = canvas.createCanvas(100, 100),
+            octx = oc.getContext('2d');
+        octx.patternQuality = "fast";
+        octx.drawImage(localHead, 0, 0, oc.width, oc.height);
+
+        return oc.toBuffer();
+    }
+
     public getCloak() {
         return this.cloak;
     }

@@ -3,12 +3,13 @@ import { skins_remove, skins_set } from '../../../../queries_types';
 import { Logger } from '../../../../utils';
 import { database } from '../../../../utils/database/database';
 import Utils from '../../utils';
+import * as fs from 'fs';
 
 const router = express.Router();
 const utils = new Utils(router);
 const logger: Logger = new Logger('v1 skins');
 
-utils.get('/get/:uuid.png', {},
+utils.get('/get/skin/:uuid.png', {},
     async (req, res) => {
         const skin = await database.getSkin(req.params.uuid);
         if (skin && skin.getSkin() != undefined && skin.getSkin().length > 1) {
@@ -22,6 +23,38 @@ utils.get('/get/:uuid.png', {},
         } else {
             res.sendFile(`${process.cwd()}/defaults/skin.png`);
         }
+    }
+);
+
+utils.get('/get/cloak/:uuid.png', {},
+    async (req, res) => {
+        const skin = await database.getSkin(req.params.uuid);
+        if (skin && skin.getCloak() != undefined && skin.getCloak().length > 1) {
+
+            const img = Buffer.from(skin.getCloak(), 'base64');
+            res.writeHead(200, {
+                'Content-Type': 'image/png',
+                'Content-Length': img.length
+            });
+            res.end(img);
+        } else {
+            res.sendStatus(404);
+        }
+    }
+);
+
+utils.get('/get/head/:uuid.png', {},
+    async (req, res) => {
+        const skin = await database.getSkin(req.params.uuid);
+        let head: Buffer;
+        if (skin && skin.getSkin() != undefined && skin.getSkin().length > 1) head = await skin.getHead();
+        else head = await skin.getHead(fs.readFileSync(`${process.cwd()}/defaults/skin.png`));
+
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': head.length
+        });
+        res.end(head);
     }
 );
 

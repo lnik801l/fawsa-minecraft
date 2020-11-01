@@ -29,8 +29,6 @@ class discord {
         for (const param in p) {
             discord.guilds.push(p[param].discord.guild_id);
         }
-
-
     }
 
     private async init() {

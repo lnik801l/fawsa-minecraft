@@ -1,4 +1,5 @@
 import discord from './modules/discord/discord';
+import serverdata from './modules/serverdata/serverdata';
 import vk from './modules/vk/vk';
 import web from './modules/web/web';
 import { database } from './utils';
@@ -45,3 +46,4 @@ new web(5000);
 new database();
 new discord();
 new vk();
+new serverdata();
