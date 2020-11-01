@@ -2,8 +2,9 @@ import mongoose = require('mongoose');
 import { User } from './schemas/Users';
 import { Cfg } from '../Cfg';
 import { Logger } from '../Logger';
-import { getModelForClass } from '@typegoose/typegoose';
+import { DocumentType, getModelForClass } from '@typegoose/typegoose';
 import { token_data } from '../Auth';
+import { Skins } from './schemas/Skins';
 
 class database {
     private static mongo = mongoose;
@@ -18,6 +19,7 @@ class database {
     });
 
     private static users = getModelForClass(User);
+    private static skins = getModelForClass(Skins);
 
     constructor() {
         this.connect();
@@ -60,6 +62,24 @@ class database {
             u.save().then((d) => {
                 return resolve(d as unknown as User);
             });
+        });
+    }
+
+    public static async getSkin(uuid: string): Promise<DocumentType<Skins>> {
+        return database.skins.findOne({ linked_uuid: uuid }).exec();
+    }
+
+    public static async getUser_vk(id: string): Promise<DocumentType<User>> {
+        return database.users.findOne({ vk_id: id }).exec();
+    }
+
+    public static async createSkin(user: User): Promise<DocumentType<Skins>> {
+        return new Promise<DocumentType<Skins>>(async (resolve, reject) => {
+            const res = await database.skins.findOne({ linked_uuid: user.uuid });
+            if (res) return reject('skins для этого юзера уже существует!');
+            const skin = new this.skins();
+            skin.construct(user.uuid);
+            skin.save().then((d) => resolve(d));
         });
     }
 

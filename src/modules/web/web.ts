@@ -6,7 +6,9 @@ import { Logger } from '../../utils';
 class Web {
     public static config: Cfg = new Cfg('web', {
         enableV1: true,
-        enableV2: false
+        enableV2: false,
+        enabled_projects: ["example"],
+        allowed_cors: ["http://localhost:8080"]
     });
     public static app = express();
     public static router: express.Router = express.Router();

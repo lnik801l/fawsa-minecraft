@@ -1,7 +1,9 @@
 import * as disAPI from 'discord.js';
 import { Attachment, ExternalAttachment, Keyboard, Responses } from 'vk-io';
+import { projects } from '../../main';
 import { Logger } from '../../utils';
 import { Cfg } from '../../utils/Cfg';
+import { cfg_projects_schema } from '../../utils/cfg_projects_types';
 import VK from '../vk/vk';
 
 class discord {
@@ -18,10 +20,17 @@ class discord {
         desc?: string
     },
         (msg: disAPI.Message, args: Array<string>, isAdmin: boolean) => void> = new Map();
+    private static guilds: Array<string> = new Array();
 
     constructor() {
         this.init();
         this.registerCommands();
+        const p = (projects.params as cfg_projects_schema);
+        for (const param in p) {
+            discord.guilds.push(p[param].discord.guild_id);
+        }
+
+
     }
 
     private async init() {
@@ -32,6 +41,8 @@ class discord {
             discord.logger.err('произошла ошибка при подключении к discord! ' + err);
         }
         discord.client.on('message', async (msg) => {
+            if (discord.guilds.find((v) => v == msg.guild.id) == undefined)
+                return;
             const args = msg.content.split(' ');
             if (args.length >= 2 && args[0] == '!up') {
 
@@ -39,7 +50,7 @@ class discord {
                     if (args[1] == params.cmd) {
                         args.shift();
                         args.shift();
-                        const isAdmin = discord.config.params.admins.some((v) => { if (v == msg.author.id) return true; else return false; });
+                        const isAdmin = discord.config.params.admins.some((v) => v == msg.author.id);
                         if (params.admin) {
                             if (isAdmin) {
                                 return cb(msg, args, isAdmin);
@@ -160,9 +171,11 @@ class discord {
 
     public static async sendMessage(channelID: string, msg: disAPI.MessageEmbed | string) {
         const ch = await discord.client.channels.fetch(channelID);
-        if (ch.type == 'text') {
+        if (ch.type == 'text')
             (ch as disAPI.TextChannel).send(msg);
-        } else throw new Error(`канал с ID: ${channelID} не текстовый!`);
+        else if (ch.type == 'news')
+            (ch as disAPI.NewsChannel).send(msg);
+        else throw new Error(`канал с ID: ${channelID} не текстовый и не новостной!`);
     }
 }
 

@@ -1,62 +1,8 @@
-import { Document, Schema } from 'mongoose';
 import { ObjectID } from 'mongodb';
 import { prop } from '@typegoose/typegoose';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Auth } from '../../Auth';
-
-export const userSchema: Schema = new Schema({
-    username: {
-        type: String,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['activated', 'non_activated', 'banned'],
-        default: 'non_activated'
-    },
-    is_gadmin: {
-        type: Boolean,
-        default: false
-    },
-    refer: {
-        type: String,
-        default: null
-    },
-    vk_id: {
-        type: String,
-        default: null
-    },
-    discord_id: {
-        type: String,
-        default: null
-    },
-    email: {
-        type: String,
-        required: true
-    },
-    uuid: {
-        type: String,
-        required: true
-    },
-    reg_date: {
-        type: Date,
-        required: true
-    },
-    notify_method: {
-        type: String,
-        enum: ['vk', 'discord', 'email'],
-        default: 'email'
-    },
-    hash: {
-        type: String,
-        required: true
-    },
-    salt: {
-        type: String,
-        required: true
-    }
-});
 
 export class User {
 

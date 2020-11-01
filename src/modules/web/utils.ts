@@ -3,12 +3,27 @@ import { CastError, safeCast } from 'safe-cast';
 import { Captcha, Auth } from '../../utils';
 import { database } from '../../utils/database/database';
 import { User } from '../../utils/database/schemas/Users';
+import Web from './web';
+import { projects } from '../../main';
 
 class utils {
     private router: express.Router;
 
+    private static cors: Array<string>;
+
     constructor(router: express.Router) {
+        if (utils.cors == undefined) {
+            utils.cors = Web.config.params.allowed_cors as Array<string>;
+        }
         this.router = router;
+    }
+
+    private static checkProject(p: string): boolean {
+        for (const param in projects) {
+            if (param != 'example')
+                if (param == p) return true;
+        }
+        return false;
     }
 
     private static async auth(req: express.Request, res: express.Response): Promise<User | null> {
@@ -25,18 +40,28 @@ class utils {
         }
     };
 
-    public get(path: string, params: { captcha: boolean, auth: boolean }, callback: (req: express.Request, res: express.Response, user: User) => void) {
+    public get(path: string, params: { captcha?: boolean, auth?: boolean, projectCheck?: boolean }, callback: (req: express.Request, res: express.Response, user: User) => void) {
         this.router.get(path, async function (req, res) {
 
             let user: User = null;
 
-            if (params.auth) {
+            const origin = req.headers.origin as string;
+            if (utils.cors.indexOf(origin) > -1) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+            }
+
+            if (params.projectCheck && params.projectCheck == true) {
+                if (utils.checkProject(req.params.p as string))
+                    return res.status(400).json({ error: true, message: 'проект не существует!' });
+            }
+
+            if (params.auth && params.auth == true) {
                 const a = await utils.auth(req, res);
                 if (a == null) return;
                 else user = a;
             }
 
-            if (params.captcha) {
+            if (params.captcha && params.captcha == true) {
                 if (!req.body.captcha) return res.status(400).send({ error: true, message: "captcha not provided!" });
                 return Captcha.validate(req.body.captcha).then((data) => {
                     if (data.err) return res.send(data);
@@ -47,7 +72,7 @@ class utils {
         });
     }
 
-    public post<T>(path: string, params: { captcha: boolean, auth: boolean, interfaceName: string },
+    public post<T>(path: string, params: { captcha?: boolean, auth?: boolean, interfaceName: string, projectCheck?: boolean },
         callback: (res: express.Response, data: T, user?: User) => void) {
 
         this.router.post(path, async function (req, res) {
@@ -55,16 +80,26 @@ class utils {
             const test = safeCast<T>(params.interfaceName, ['./src/queries_types.ts'], req.body);
             let user: User = null;
 
+            const origin = req.headers.origin as string;
+            if (utils.cors.indexOf(origin) > -1) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+            }
+
             if (test instanceof CastError)
                 return res.status(400).json({ error: true, message: 'невалидные входящие данные!' });
 
-            if (params.auth) {
+            if (params.projectCheck && params.projectCheck == true) {
+                if (this.projects.find((v) => { return v == req.params.p }) == undefined)
+                    return res.status(400).json({ error: true, message: 'проект не существует!' });
+            }
+
+            if (params.auth && params.auth == true) {
                 const a = await utils.auth(req, res);
                 if (a == null) return;
                 else user = a;
             }
 
-            if (params.captcha) {
+            if (params.captcha && params.captcha == true) {
                 if (!req.body.captcha)
                     return res.status(400).send({ error: true, message: "captcha not provided!" });
                 return Captcha.validate(req.body.captcha).then((data) => {
