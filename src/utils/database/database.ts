@@ -1,10 +1,10 @@
 import mongoose = require('mongoose');
-import { User } from './schemas/Users';
+import User from './models/Users';
 import { Cfg } from '../Cfg';
 import { Logger } from '../Logger';
 import { DocumentType, getModelForClass } from '@typegoose/typegoose';
 import { token_data } from '../Auth';
-import { Skins } from './schemas/Skins';
+import Skins from './models/Skins';
 
 class database {
     private static mongo = mongoose;

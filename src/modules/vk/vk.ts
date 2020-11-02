@@ -4,7 +4,7 @@ import { database, Logger } from '../../utils';
 import { Cfg } from '../../utils/Cfg';
 import discord from '../discord/discord';
 import * as express from 'express';
-import { request } from 'request';
+import request from 'request';
 import { vk_cfg_schema } from '../../utils/cfg_projects_types';
 
 interface local_cfg {

@@ -2,7 +2,7 @@ import { prop } from '@typegoose/typegoose';
 import * as canvas from 'canvas';
 import { skins_set } from '../../../queries_types';
 
-export class Skins {
+export default class Skins {
 
     @prop()
     private linked_uuid: string;

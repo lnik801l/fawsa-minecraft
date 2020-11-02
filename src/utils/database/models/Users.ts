@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Auth } from '../../Auth';
 
-export class User {
+export default class User {
 
     _id: ObjectID
 

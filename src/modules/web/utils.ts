@@ -2,9 +2,10 @@ import express = require('express');
 import { CastError, safeCast } from 'safe-cast';
 import { Captcha, Auth } from '../../utils';
 import { database } from '../../utils/database/database';
-import { User } from '../../utils/database/schemas/Users';
+import User from '../../utils/database/models/Users';
 import Web from './web';
 import { projects } from '../../main';
+import { cfg_projects_schema } from '../../utils/cfg_projects_types';
 
 class utils {
     private router: express.Router;
@@ -19,10 +20,19 @@ class utils {
     }
 
     private static checkProject(p: string): boolean {
-        for (const param in projects) {
-            if (param != 'example')
-                if (param == p) return true;
-        }
+        const pr = projects.params as cfg_projects_schema;
+
+        for (const param in pr)
+            if (param != 'example' && param == p)
+                return true;
+
+        return false;
+    }
+
+    private static checkServer(p: string, srv: string): boolean {
+        const pr = projects.params as cfg_projects_schema;
+        for (const s in pr[p].servers)
+            if (s == srv) return true;
         return false;
     }
 
@@ -40,7 +50,7 @@ class utils {
         }
     };
 
-    public get(path: string, params: { captcha?: boolean, auth?: boolean, projectCheck?: boolean }, callback: (req: express.Request, res: express.Response, user: User) => void) {
+    public get(path: string, params: { captcha?: boolean, auth?: boolean, projectCheck?: boolean, serverCheck?: boolean }, callback: (req: express.Request, res: express.Response, user: User) => void) {
         this.router.get(path, async function (req, res) {
 
             let user: User = null;
@@ -51,8 +61,13 @@ class utils {
             }
 
             if (params.projectCheck && params.projectCheck == true) {
-                if (utils.checkProject(req.params.p as string))
+                if (!utils.checkProject(req.params.p as string))
                     return res.status(400).json({ error: true, message: 'проект не существует!' });
+            }
+
+            if (params.serverCheck && params.serverCheck == true) {
+                if (!utils.checkServer(req.params.p as string, req.params.s as string))
+                    return res.status(400).json({ error: true, message: 'сервер не существует!' });
             }
 
             if (params.auth && params.auth == true) {
@@ -72,7 +87,7 @@ class utils {
         });
     }
 
-    public post<T>(path: string, params: { captcha?: boolean, auth?: boolean, interfaceName: string, projectCheck?: boolean },
+    public post<T>(path: string, params: { captcha?: boolean, auth?: boolean, interfaceName: string, projectCheck?: boolean, serverCheck?: boolean },
         callback: (res: express.Response, data: T, user?: User) => void) {
 
         this.router.post(path, async function (req, res) {
@@ -91,6 +106,11 @@ class utils {
             if (params.projectCheck && params.projectCheck == true) {
                 if (this.projects.find((v) => { return v == req.params.p }) == undefined)
                     return res.status(400).json({ error: true, message: 'проект не существует!' });
+            }
+
+            if (params.serverCheck && params.serverCheck == true) {
+                if (utils.checkServer(req.params.p as string, req.params.s as string))
+                    return res.status(400).json({ error: true, message: 'сервер не существует!' });
             }
 
             if (params.auth && params.auth == true) {

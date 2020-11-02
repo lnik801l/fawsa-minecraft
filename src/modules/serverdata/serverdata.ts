@@ -2,6 +2,7 @@ import { projects } from '../../main';
 import { cfg_projects_schema, cfg_servers_schema } from '../../utils/cfg_projects_types';
 import * as mc_ping from 'minecraft-server-ping';
 import { Logger } from '../../utils/Logger';
+import request from 'request';
 
 
 export interface server_info {
@@ -10,7 +11,21 @@ export interface server_info {
     online: number,
     online_max: number,
     version: string,
-    offers: any
+    offers_error: boolean,
+    offers: { [name: string]: offer }
+}
+
+interface offer {
+    itemstack: {
+        registry_name: string,
+        damage: number,
+        itemstack_nbt: string,
+        capabilities_nbt: string
+    },
+    count: number,
+    price: number,
+    discount: number,
+    image: string
 }
 
 export default class serverdata {
@@ -36,7 +51,10 @@ export default class serverdata {
                     serverdata.data[p][s] = {} as server_info;
                 const srv = serverdata.servers[p][s];
                 const data = serverdata.data[p][s];
-                if (!data.pending) serverdata.ping_srv(srv.host, srv.port, serverdata.data[p][s]);
+                if (!data.pending) {
+                    serverdata.get_offers(srv.offer_server_url, serverdata.data[p][s]);
+                    serverdata.ping_srv(srv.host, srv.port, serverdata.data[p][s]);
+                }
             }
         }
     }
@@ -55,6 +73,20 @@ export default class serverdata {
             info.pending = false;
         }
 
+    }
+
+    private static async get_offers(uri: string, info: server_info) {
+        request({
+            method: 'GET',
+            url: uri
+        }, (err, _res, body) => {
+            if (err) {
+                console.log(err);
+                return info.offers_error = true;
+            }
+            info.offers = JSON.parse(body) as { [name: string]: offer };
+            return info.offers_error = false;
+        })
     }
 
     constructor() {
